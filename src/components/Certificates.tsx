@@ -11,6 +11,8 @@ import {
 
 interface CertificatesProps {
   onInspectPhoto: (photo: InspectablePhoto) => void
+  pageIdx?: number
+  onChangePageIdx?: (idx: number) => void
 }
 
 const CERT_SLOTS: {
@@ -35,19 +37,37 @@ const CERT_SLOTS: {
 
 const CERTS_PER_PAGE = 2
 
-export default function Certificates({ onInspectPhoto }: CertificatesProps) {
+export default function Certificates({
+  onInspectPhoto,
+  pageIdx: controlledPageIdx,
+  onChangePageIdx,
+}: CertificatesProps) {
   const totalCerts = CERTIFICATES.length
   const totalPages = Math.max(1, Math.ceil(totalCerts / CERTS_PER_PAGE))
-  const [pageIdx, setPageIdx] = useState(0)
+  const [internalPageIdx, setInternalPageIdx] = useState(0)
+  const pageIdx = controlledPageIdx ?? internalPageIdx
+  const setPageIdx = (updater: number | ((prev: number) => number)) => {
+    const next = typeof updater === 'function' ? updater(pageIdx) : updater
+    if (onChangePageIdx) {
+      onChangePageIdx(next)
+    } else {
+      setInternalPageIdx(next)
+    }
+  }
   const [isPaused, setIsPaused] = useState(false)
 
   useEffect(() => {
     if (totalPages <= 1 || isPaused) return
     const timer = window.setInterval(() => {
-      setPageIdx((prev) => (prev + 1) % totalPages)
+      const next = (pageIdx + 1) % totalPages
+      if (onChangePageIdx) {
+        onChangePageIdx(next)
+      } else {
+        setInternalPageIdx(next)
+      }
     }, 4800)
     return () => window.clearInterval(timer)
-  }, [totalPages, isPaused])
+  }, [totalPages, isPaused, pageIdx, onChangePageIdx])
 
   const startIdx = pageIdx * CERTS_PER_PAGE
   const visibleCerts = CERTIFICATES.slice(startIdx, startIdx + CERTS_PER_PAGE)
@@ -62,10 +82,10 @@ export default function Certificates({ onInspectPhoto }: CertificatesProps) {
       <div>
         <div className="diary-item flex items-start justify-between gap-2">
           <div>
-            <h2 className="hand text-[2.4rem] sm:text-[2.65rem] font-bold text-ink leading-none whitespace-nowrap">
+            <h2 className="hand text-[2.65rem] font-bold text-ink leading-none whitespace-nowrap">
               Certificates
             </h2>
-            <SketchUnderline className="w-40 sm:w-44 h-3 mt-1" color="red" />
+            <SketchUnderline className="w-44 h-3 mt-1" color="red" />
           </div>
 
           <div className="relative flex items-center gap-1 bg-crimson px-3 py-0.5 ink-pill rotate-1 shrink-0 mt-1">
@@ -84,6 +104,9 @@ export default function Certificates({ onInspectPhoto }: CertificatesProps) {
         {/* Interactive Folder Pagination Bar */}
         <div className="diary-item flex items-center justify-between gap-2 mt-2 pb-1.5 border-b-2 border-dashed border-ink/25">
           <div className="flex items-center gap-1.5">
+            <span className="hand text-xs font-bold text-ink-soft shrink-0 select-none">
+              Tab:
+            </span>
             {Array.from({ length: totalPages }).map((_, idx) => {
               const firstNum = idx * CERTS_PER_PAGE + 1
               const lastNum = Math.min((idx + 1) * CERTS_PER_PAGE, totalCerts)
@@ -93,13 +116,15 @@ export default function Certificates({ onInspectPhoto }: CertificatesProps) {
                   key={idx}
                   type="button"
                   onClick={() => setPageIdx(idx)}
-                  className={`btn hand text-xs font-bold px-2.5 py-0.5 border-2 border-ink rounded-xs cursor-pointer ${
+                  aria-label={`Certificates ${firstNum} to ${lastNum}`}
+                  title={`Certificates ${firstNum}–${lastNum}`}
+                  className={`btn hand text-xs font-bold px-2 py-0.5 border-2 border-ink rounded-xs cursor-pointer transition-transform ${
                     isActive
-                      ? 'bg-crimson text-paper -rotate-1 shadow-[2px_2px_0px_#111111]'
-                      : 'bg-card text-ink rotate-1'
+                      ? 'bg-crimson text-paper -rotate-1 shadow-[2px_2px_0px_#111111] scale-105'
+                      : 'bg-card text-ink rotate-1 hover:bg-highlight'
                   }`}
                 >
-                  Clippings {firstNum}–{lastNum}
+                  {firstNum === lastNum ? `${firstNum}` : `${firstNum}–${lastNum}`}
                 </button>
               )
             })}
@@ -154,6 +179,11 @@ export default function Certificates({ onInspectPhoto }: CertificatesProps) {
                       src: cert.img,
                       title: `${cert.title} (${cert.issuer})`,
                       caption: cert.note,
+                      tilt: slot.tilt,
+                      variant: 'shredded',
+                      tapePosition: slot.tape,
+                      badge: 'VERIFIED',
+                      stampRotate: slot.stampRotate,
                     })
                   }
                 />
@@ -181,13 +211,17 @@ export default function Certificates({ onInspectPhoto }: CertificatesProps) {
             </article>
           )
         })}
+
       </div>
 
       {/* Bottom subtle developer / backstage pass footer */}
       <div className="flex items-center justify-end gap-2 pr-1">
         <span className="hand text-xs font-bold text-ink-soft">
-          Showing {startIdx + 1}–{Math.min(startIdx + CERTS_PER_PAGE, totalCerts)} of{' '}
-          {totalCerts} certificates (auto-cycles)
+          Showing {startIdx + 1}
+          {startIdx + 1 < Math.min(startIdx + CERTS_PER_PAGE, totalCerts)
+            ? `–${Math.min(startIdx + CERTS_PER_PAGE, totalCerts)}`
+            : ''}{' '}
+          of {totalCerts} certificates (auto-cycles)
         </span>
         <div className="border-2 border-ink bg-card px-2 py-0.5 -rotate-2 shadow-2xs">
           <span className="hand text-[11px] font-bold text-ink leading-none block">

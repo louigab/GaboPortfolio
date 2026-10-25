@@ -140,10 +140,10 @@ export function AchievementsPageLeft({ onInspectPhoto }: AchievementsPageProps) 
       <div>
         <div className="diary-item flex items-start justify-between gap-2">
           <div>
-            <h2 className="hand text-[2.4rem] sm:text-[2.65rem] font-bold text-ink leading-none whitespace-nowrap">
+            <h2 className="hand text-[2.65rem] font-bold text-ink leading-none whitespace-nowrap">
               {entry.title}
             </h2>
-            <SketchUnderline className="w-40 sm:w-44 h-3 mt-1" color="red" />
+            <SketchUnderline className="w-44 h-3 mt-1" color="red" />
           </div>
           <span className="sticker font-bold text-xs tracking-wide shrink-0 mt-1">
             {entry.badgeText}
@@ -204,10 +204,10 @@ export function AchievementsPageRight({ onInspectPhoto }: AchievementsPageProps)
       <div>
         <div className="diary-item flex items-start justify-between gap-2">
           <div>
-            <h2 className="hand text-[2.4rem] sm:text-[2.65rem] font-bold text-ink leading-none whitespace-nowrap">
+            <h2 className="hand text-[2.65rem] font-bold text-ink leading-none whitespace-nowrap">
               AppBuilders PH
             </h2>
-            <SketchUnderline className="w-40 sm:w-44 h-3 mt-1" color="red" />
+            <SketchUnderline className="w-44 h-3 mt-1" color="red" />
           </div>
           <div className="flex items-center gap-1 bg-crimson px-2.5 py-0.5 ink-pill rotate-1 shrink-0 mt-1">
             <DoodleTrophy className="w-4 h-4" />

@@ -207,7 +207,7 @@ export function VerifiedStamp({
       aria-hidden="true"
     >
       <div className="border-[2.5px] border-crimson px-2 py-0.5 bg-transparent shadow-[inset_0_0_0_1px_rgba(201,37,44,0.45)]">
-        <span className="marker text-xs sm:text-sm font-black tracking-widest text-crimson uppercase leading-none block">
+        <span className="marker text-sm font-black tracking-widest text-crimson uppercase leading-none block">
           {text}
         </span>
       </div>
@@ -219,6 +219,8 @@ export function TornScrapButton({
   children,
   onClick,
   href,
+  type = 'button',
+  disabled = false,
   tilt = -1,
   className = '',
   variant = 'red',
@@ -226,6 +228,8 @@ export function TornScrapButton({
   children: React.ReactNode
   onClick?: () => void
   href?: string
+  type?: 'button' | 'submit' | 'reset'
+  disabled?: boolean
   tilt?: number
   className?: string
   variant?: 'red' | 'ink'
@@ -255,7 +259,7 @@ export function TornScrapButton({
         />
       </svg>
       <span
-        className={`relative z-10 hand text-lg sm:text-[1.35rem] font-bold tracking-tight px-4 py-2.5 sm:py-3 block leading-none whitespace-nowrap ${textColor}`}
+        className={`relative z-10 hand text-[1.35rem] font-bold tracking-tight px-4 py-3 block leading-none whitespace-nowrap ${textColor}`}
       >
         {children}
       </span>
@@ -276,10 +280,11 @@ export function TornScrapButton({
 
   return (
     <button
-      type="button"
+      type={type}
+      disabled={disabled}
       onClick={onClick}
       style={{ transform: `rotate(${tilt}deg)` }}
-      className={`btn relative inline-flex items-center justify-center cursor-pointer select-none bg-transparent border-0 p-0 ${className}`}
+      className={`btn relative inline-flex items-center justify-center cursor-pointer select-none bg-transparent border-0 p-0 disabled:opacity-60 disabled:cursor-not-allowed ${className}`}
     >
       {content}
     </button>

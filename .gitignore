@@ -23,6 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment files (keep the example, never the real values)
+.env
+.env.*
+!.env.example
+
 # Tool / agent caches and local artifacts
 .impeccable-cache/
 .taste-skill/

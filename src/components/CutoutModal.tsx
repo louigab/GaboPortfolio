@@ -1,14 +1,13 @@
 import { useEffect, useRef } from 'react'
-import type { InspectablePhoto } from './MagazineCutout'
-import { DoodleTape, SketchUnderline } from './InkDoodles'
+import type { InspectablePhoto } from './cutoutGeometry'
+import { getCutoutPolygon } from './cutoutGeometry'
+import { CutoutTapes } from './MagazineCutout'
+import { VerifiedStamp } from './InkDoodles'
 
 interface CutoutModalProps {
   photo: InspectablePhoto | null
   onClose: () => void
 }
-
-const MODAL_TORN_POINTS =
-  '2,5 16,1 29,6 44,2 60,7 75,1 91,6 108,2 124,7 140,1 156,6 171,2 185,7 198,3 195,18 199,33 194,48 199,63 193,78 198,95 193,112 199,128 194,145 198,162 193,178 198,194 183,198 168,193 152,199 136,193 120,198 104,192 88,199 72,193 56,198 40,192 25,199 11,193 2,197 6,181 1,165 7,149 2,133 6,117 1,101 7,85 2,69 6,53 1,37 7,21'
 
 export default function CutoutModal({ photo, onClose }: CutoutModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -26,7 +25,7 @@ export default function CutoutModal({ photo, onClose }: CutoutModalProps) {
     }
   }, [photo])
 
-  // Fallback for browsers without native closedby="any" support (modern-web-guidance: light-dismiss-a-dialog)
+  // Handle native dialog close event (e.g. Esc key or light dismiss)
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
@@ -35,89 +34,146 @@ export default function CutoutModal({ photo, onClose }: CutoutModalProps) {
       onClose()
     }
 
-    const handleClick = (event: MouseEvent) => {
-      if ('closedBy' in HTMLDialogElement.prototype) return
-      if (event.target !== dialog) return
-      const rect = dialog.getBoundingClientRect()
-      const isDialogContent =
-        rect.top <= event.clientY &&
-        event.clientY <= rect.top + rect.height &&
-        rect.left <= event.clientX &&
-        event.clientX <= rect.left + rect.width
-
-      if (!isDialogContent) {
-        dialog.close()
-      }
-    }
-
     dialog.addEventListener('close', handleClose)
-    dialog.addEventListener('click', handleClick)
     return () => {
       dialog.removeEventListener('close', handleClose)
-      dialog.removeEventListener('click', handleClick)
     }
   }, [onClose])
+
+  if (!photo) return null
+
+  const polyPoints = getCutoutPolygon(photo.src, photo.variant)
+  const isPortrait = photo.variant === 'portrait'
+  // Subtle organic tilt (clamped to ±1.2deg so rectangular margins stay tight & clean)
+  const tiltDeg = photo.tilt != null ? Math.max(-1.2, Math.min(1.2, photo.tilt * 0.4)) : 0
+  const hasTextOrLink = Boolean(photo.caption || photo.link)
 
   return (
     <dialog
       ref={dialogRef}
-      closedby="any"
-      aria-labelledby="cutout-dialog-title"
-      className="cutout-dialog m-auto bg-transparent p-4 max-w-2xl w-[92vw] overflow-visible"
+      aria-labelledby="cutout-dialog-caption"
+      className="cutout-dialog fixed inset-0 w-full h-[100dvh] max-w-none max-h-none m-0 p-4 sm:p-6 md:p-8 bg-transparent border-0 outline-none flex items-center justify-center overflow-hidden backdrop:bg-ink/75 pointer-events-auto select-none"
+      onClick={(e) => {
+        // Dismiss if clicking directly on dialog backdrop outside the card
+        if (e.target === dialogRef.current) {
+          onClose()
+        }
+      }}
     >
-      {photo && (
-        <div className="relative p-5 sm:p-7">
-          {/* Jagged torn-paper backing */}
+      {/* Full-screen backdrop click dismiss layer */}
+      <div
+        className="absolute inset-0 w-full h-full -z-10"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Floating Close [Esc] button - pinned in upper-right corner of viewport */}
+      <div className="fixed top-3.5 right-3.5 sm:top-5 sm:right-6 z-50 pointer-events-auto">
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn hand text-sm sm:text-base font-bold px-3.5 py-1.5 bg-crimson text-paper ink-pill cursor-pointer -rotate-2 hover:scale-105 transition-transform shadow-[2px_3px_8px_rgba(0,0,0,0.55)]"
+          aria-label="Close dialog"
+        >
+          Close [Esc]
+        </button>
+      </div>
+
+      <h2 id="cutout-dialog-caption" className="sr-only">
+        {photo.caption || photo.title || 'Scrapbook clipping'}
+      </h2>
+
+      {/* Perfectly centered wrapper constrained to viewport with generous breathing room */}
+      <div
+        className="cutout-card relative z-10 flex items-center justify-center max-w-[min(90vw,680px)] max-h-[min(82dvh,82vh)] p-2 sm:p-4 pointer-events-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <figure
+          className="magazine-cutout relative flex flex-col items-center select-none max-w-full max-h-full"
+          style={{
+            transform: tiltDeg !== 0 ? `rotate(${tiltDeg}deg)` : undefined,
+          }}
+        >
+          {/* Torn Paper Scrap Backing SVG */}
           <svg
             viewBox="0 0 200 200"
             preserveAspectRatio="none"
-            className="absolute inset-0 w-full h-full pointer-events-none z-0 drop-shadow-[4px_6px_8px_rgba(17,17,17,0.5)]"
+            className={`absolute ${
+              isPortrait
+                ? '-inset-3.5 sm:-inset-4.5 w-[calc(100%+28px)] sm:w-[calc(100%+36px)] h-[calc(100%+28px)] sm:h-[calc(100%+36px)]'
+                : '-inset-3 sm:-inset-4 w-[calc(100%+24px)] sm:w-[calc(100%+32px)] h-[calc(100%+24px)] sm:h-[calc(100%+32px)]'
+            } pointer-events-none z-0 drop-shadow-[3px_6px_14px_rgba(17,17,17,0.45)]`}
             aria-hidden="true"
           >
-            <polygon points={MODAL_TORN_POINTS} fill="#fcfaf5" stroke="#111111" strokeWidth="1.5" />
+            <polygon
+              points={polyPoints}
+              fill="#fcfaf5"
+              stroke="#4a453d"
+              strokeWidth="0.9"
+              strokeLinejoin="round"
+            />
+            {isPortrait && (
+              <path
+                d="M4 74 L18 148 M9 78 L22 142"
+                stroke="#111111"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            )}
           </svg>
 
-          {/* Frayed masking tape strips on top & corners */}
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-            <DoodleTape rotate={-2} className="w-28 h-8" variant="red" />
-          </div>
-          <div className="absolute -top-2 -left-3 z-20 pointer-events-none">
-            <DoodleTape rotate={-34} className="w-20 h-6" variant="beige" />
-          </div>
-          <div className="absolute -bottom-2 -right-3 z-20 pointer-events-none">
-            <DoodleTape rotate={-32} className="w-20 h-6" variant="beige" />
-          </div>
+          {/* Masking tape configuration scaled proportionately */}
+          <CutoutTapes
+            preset={photo.tapePosition ?? 'corners'}
+            tilt={photo.tilt ?? 0}
+            size="lg"
+          />
 
-          <div className="relative z-10">
-            <div className="flex items-start justify-between gap-4 mb-3">
-              <div>
-                <h3 id="cutout-dialog-title" className="hand text-2xl sm:text-3xl font-bold text-ink leading-none">
-                  {photo.title}
-                </h3>
-                <SketchUnderline className="w-full h-3 mt-1" color="red" />
-              </div>
-              <form method="dialog">
-                <button
-                  type="submit"
-                  className="btn hand text-lg font-bold px-3.5 py-1 bg-crimson text-paper ink-pill cursor-pointer -rotate-2"
-                >
-                  Close [Esc]
-                </button>
-              </form>
+          {/* Red rubber ink stamp badge (e.g. VERIFIED on Certificates) */}
+          {photo.badge && (
+            <div className="absolute bottom-3 right-2.5 z-20 pointer-events-none">
+              <VerifiedStamp text={photo.badge} rotate={photo.stampRotate ?? -14} />
             </div>
+          )}
 
-            <div className="bg-paper-2 p-2 border border-ink/20">
+          {/* Photograph + Caption container inside paper scrap */}
+          <div className="relative z-10 flex flex-col items-center max-w-full max-h-full p-1.5 sm:p-2 min-h-0">
+            {/* Image box: dynamically scales to ensure whole cutout + text fits inside screen */}
+            <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
               <img
                 src={photo.src}
-                alt={photo.title}
-                className="w-full max-h-[60dvh] object-contain mx-auto block"
+                alt={photo.title || photo.caption || 'Cutout image'}
+                className={`w-auto max-w-full object-contain block ${
+                  hasTextOrLink
+                    ? 'max-h-[44vh] sm:max-h-[48vh] md:max-h-[52vh]'
+                    : 'max-h-[58vh] sm:max-h-[64vh] md:max-h-[68vh]'
+                }`}
               />
             </div>
 
-            <p className="hand text-xl font-bold text-ink text-center mt-3">{photo.caption}</p>
+            {/* Handwritten Caption directly below photo */}
+            {photo.caption && (
+              <figcaption className="hand text-ink text-center text-sm sm:text-base md:text-lg leading-snug pt-2 sm:pt-2.5 pb-0.5 px-3 font-bold select-text max-w-xl mx-auto break-words shrink-0">
+                {photo.caption}
+              </figcaption>
+            )}
+
+            {/* Optional Project Site Sticker */}
+            {photo.link && (
+              <div className="flex justify-center mt-2 pb-0.5 shrink-0">
+                <a
+                  href={photo.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn tech-sticker tech-sticker-active hand text-xs sm:text-sm font-bold inline-flex items-center gap-1 px-3 py-1 -rotate-1 shadow-xs cursor-pointer hover:scale-105 transition-transform"
+                >
+                  <span>Visit Project Site ↗</span>
+                </a>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        </figure>
+      </div>
     </dialog>
   )
 }

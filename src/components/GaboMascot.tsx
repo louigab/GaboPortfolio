@@ -12,7 +12,7 @@ const BONUS_QUIPS = [
   'Hey! Watch the glasses, I just cleaned them.',
   'Fun fact: this whole notebook has zero scrollbars!',
   'Built with React, Tailwind CSS, and GSAP page flips.',
-  'Try pressing Left or Right arrow keys to turn pages!',
+  'Grab a page corner, or use the Left/Right arrow keys, to turn pages!',
   'Real photos = torn cutouts. Everything else = black & red ink!',
 ]
 
@@ -104,7 +104,7 @@ export default function GaboMascot({
         className={`btn group inline-flex items-center gap-1.5 text-left cursor-pointer ${className}`}
         title="Click Gabo for a diary note!"
       >
-        <span className="hand text-base sm:text-xl font-bold leading-none text-ink whitespace-nowrap">
+        <span className="hand text-xl font-bold leading-none text-ink whitespace-nowrap">
           diary of gabo
         </span>
       </button>
@@ -125,7 +125,7 @@ export default function GaboMascot({
             ref={imgRef}
             src="/gaboCharacter.png"
             alt="Drawn Wimpy Kid style illustration of Gabo with hands in pockets"
-            className="h-[260px] sm:h-[330px] w-auto object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
+            className="h-[330px] w-auto object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
           />
         </button>
 
@@ -134,7 +134,7 @@ export default function GaboMascot({
             ref={bubbleRef}
             className="speech-bubble absolute -top-11 right-0 z-30 bg-card px-2.5 py-1 text-ink w-44 shadow-sm pointer-events-none"
           >
-            <p className="hand text-xs sm:text-sm leading-tight text-ink font-semibold">
+            <p className="hand text-sm leading-tight text-ink font-semibold">
               {BONUS_QUIPS[activeQuipIndex]}
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function GaboMascot({
   }
 
   return (
-    <div className={`relative flex items-end gap-2 sm:gap-2.5 select-none ${className}`}>
+    <div className={`relative flex items-end gap-2.5 select-none ${className}`}>
       <button
         type="button"
         onClick={handleMascotClick}
@@ -155,7 +155,7 @@ export default function GaboMascot({
           ref={imgRef}
           src="/gaboCharacter.png"
           alt="Drawn Wimpy Kid style illustration of Gabo"
-          className="h-22 sm:h-28 w-auto object-contain"
+          className="h-28 w-auto object-contain"
         />
         <span className="block hand text-[11px] text-ink-soft text-center -mt-0.5 underline decoration-dashed">
           (tap me!)
@@ -165,24 +165,9 @@ export default function GaboMascot({
       {activeSpeech && (
         <div
           ref={bubbleRef}
-          className="speech-bubble relative bg-card px-2.5 py-1.5 text-ink flex-1 max-w-[210px] sm:max-w-[230px] mb-3 sm:mb-4"
+          className="speech-bubble relative bg-card px-2.5 py-1.5 text-ink flex-1 max-w-[230px] mb-4"
         >
-          <p className="hand text-xs sm:text-base leading-snug text-ink">{activeSpeech}</p>
-          {/* Hand-drawn speech bubble tail pointing left to Gabo */}
-          <svg
-            viewBox="0 0 24 20"
-            className="w-3.5 h-3 sm:w-4 sm:h-3.5 absolute -left-3 sm:-left-3.5 bottom-2.5 pointer-events-none"
-            aria-hidden="true"
-          >
-            <path
-              d="M22 2 L3 14 L22 17 Z"
-              fill="#fcfaf5"
-              stroke="#111111"
-              strokeWidth="2.4"
-              strokeLinejoin="round"
-            />
-            <path d="M21 3.5 L21 15.5" stroke="#fcfaf5" strokeWidth="3" />
-          </svg>
+          <p className="hand text-base leading-snug text-ink">{activeSpeech}</p>
         </div>
       )}
     </div>

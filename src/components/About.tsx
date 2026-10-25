@@ -12,14 +12,14 @@ export default function About({ onInspectPhoto }: AboutProps) {
       <div>
         {/* Uniform Page Heading with red double marker underline */}
         <div className="diary-item">
-          <h2 className="hand text-[2.4rem] sm:text-[2.65rem] font-bold text-ink leading-none whitespace-nowrap">
+          <h2 className="hand text-[2.65rem] font-bold text-ink leading-none whitespace-nowrap">
             About Me
           </h2>
-          <SketchUnderline className="w-40 sm:w-44 h-3 mt-1" color="red" />
+          <SketchUnderline className="w-44 h-3 mt-1" color="red" />
         </div>
 
         {/* About Me Copy directly on the notebook lines (fits on 3 lines) */}
-        <p className="diary-item hand text-base sm:text-[1.1rem] leading-[1.35] text-ink mt-1.5">
+        <p className="diary-item hand text-[1.1rem] leading-[1.35] text-ink mt-1.5">
           My full name is Louis Gabriel D. Damondamon, though everyone calls me{' '}
           <span className="red-marker-box">gabo.</span> I love exploring new tech and
           bringing cool ideas to life through code.
@@ -28,13 +28,13 @@ export default function About({ onInspectPhoto }: AboutProps) {
         {/* "What I actually do:" written directly on the lines (NO UI container box) */}
         <div className="diary-item mt-2.5">
           <div className="inline-block">
-            <h3 className="hand text-xl sm:text-[1.55rem] font-bold text-ink leading-none">
+            <h3 className="hand text-[1.55rem] font-bold text-ink leading-none">
               What I actually do:
             </h3>
             <SketchUnderline className="w-full h-2 mt-0.5" color="red" />
           </div>
 
-          <ol className="mt-1.5 space-y-1 hand text-base sm:text-[1.1rem] leading-[1.28] text-ink list-none pl-1.5">
+          <ol className="mt-1.5 space-y-1 hand text-[1.1rem] leading-[1.28] text-ink list-none pl-1.5">
             <li className="flex items-baseline gap-1.5">
               <span className="shrink-0 font-bold">1.</span>
               <span>
@@ -67,7 +67,7 @@ export default function About({ onInspectPhoto }: AboutProps) {
       {/* Bottom section: Uniform landscape scrapbook clippings with clear tape separation */}
       <div className="diary-item pb-1">
         <div className="flex items-center justify-between mb-3.5 px-0.5">
-          <span className="hand text-base sm:text-[1.06rem] font-bold text-ink underline decoration-crimson decoration-2 underline-offset-3">
+          <span className="hand text-[1.06rem] font-bold text-ink underline decoration-crimson decoration-2 underline-offset-3">
             Recent Scrapbook Clippings:
           </span>
           <span className="hand text-xs font-bold text-ink-soft">
@@ -78,11 +78,11 @@ export default function About({ onInspectPhoto }: AboutProps) {
         <div className="relative grid grid-cols-2 gap-4 items-start px-2">
           <div className="relative z-10">
             <MagazineCutout
-              src="/achievements/hack4gov_2025_1.jpg"
-              alt="Hack4Gov 2025 Team"
-              caption="Hack4Gov 2025"
+              src="/achievements/AppBuildersPH_9thPlace_1.jpg"
+              alt="AppBuilders PH 9th Place"
+              caption="AppBuilders PH (9th)"
               tilt={-1.8}
-              tapePosition="corners"
+              tapePosition="mixed-top"
               priority={true}
               className="w-full"
               imgClassName="w-full h-[80px] object-cover"
@@ -91,11 +91,11 @@ export default function About({ onInspectPhoto }: AboutProps) {
           </div>
           <div className="relative z-20">
             <MagazineCutout
-              src="/achievements/AppBuildersPH_9thPlace_1.jpg"
-              alt="AppBuilders PH 9th Place"
-              caption="AppBuilders PH (9th)"
+              src="/achievements/hack4gov_2025_1.jpg"
+              alt="Hack4Gov 2025 Team"
+              caption="Hack4Gov 2025"
               tilt={1.8}
-              tapePosition="mixed-top"
+              tapePosition="corners"
               priority={true}
               className="w-full"
               imgClassName="w-full h-[80px] object-cover"

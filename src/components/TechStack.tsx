@@ -13,6 +13,7 @@ import {
 interface TechStackPageProps {
   selectedTech: TechItem
   onSelectTech: (item: TechItem) => void
+  isDesktop?: boolean
 }
 
 const STICKER_TILTS = [-1.6, 1.3, -0.9, 1.8, -1.2, 0.8, -1.9, 1.1]
@@ -20,41 +21,48 @@ const STICKER_TILTS = [-1.6, 1.3, -0.9, 1.8, -1.2, 0.8, -1.9, 1.1]
 function CategoryDoodleMarker({ title }: { title: string }) {
   if (title.includes('Frontend')) {
     return (
-      <span className="marker text-crimson text-base sm:text-lg font-bold tracking-tight">
+      <span className="marker text-crimson text-lg font-bold tracking-tight">
         &lt;/&gt;
       </span>
     )
   }
   if (title.includes('Mobile')) {
     return (
-      <span className="marker text-crimson text-base sm:text-lg font-bold tracking-tight">
+      <span className="marker text-crimson text-lg font-bold tracking-tight">
         [app]
       </span>
     )
   }
   if (title.includes('Backend')) {
     return (
-      <span className="marker text-crimson text-base sm:text-lg font-bold tracking-tight">
+      <span className="marker text-crimson text-lg font-bold tracking-tight">
         &#123;api&#125;
+      </span>
+    )
+  }
+  if (title.includes('AI')) {
+    return (
+      <span className="marker text-crimson text-lg font-bold tracking-tight">
+        (ai)
       </span>
     )
   }
   if (title.includes('Databases')) {
     return (
-      <span className="marker text-crimson text-base sm:text-lg font-bold tracking-tight">
+      <span className="marker text-crimson text-lg font-bold tracking-tight">
         (sql)
       </span>
     )
   }
   if (title.includes('Game')) {
     return (
-      <span className="marker text-crimson text-base sm:text-lg font-bold tracking-tight">
+      <span className="marker text-crimson text-lg font-bold tracking-tight">
         +2D+
       </span>
     )
   }
   return (
-    <span className="marker text-crimson text-base sm:text-lg font-bold tracking-tight">
+    <span className="marker text-crimson text-lg font-bold tracking-tight">
       git*
     </span>
   )
@@ -63,6 +71,7 @@ function CategoryDoodleMarker({ title }: { title: string }) {
 export function TechStackPageLeft({
   selectedTech,
   onSelectTech,
+  isDesktop = true,
 }: TechStackPageProps) {
   const leftGroups = TECH_GROUPS.filter((g) => g.page === 1)
 
@@ -76,14 +85,14 @@ export function TechStackPageLeft({
 
       <div>
         <div className="diary-item">
-          <h2 className="hand text-[2.4rem] sm:text-[2.65rem] font-bold text-ink leading-none whitespace-nowrap">
+          <h2 className="hand text-[2.65rem] font-bold text-ink leading-none whitespace-nowrap">
             Tech Arsenal
           </h2>
-          <SketchUnderline className="w-40 sm:w-44 h-3 mt-1" color="red" />
+          <SketchUnderline className="w-44 h-3 mt-1" color="red" />
         </div>
 
         <p className="diary-item hand text-[0.98rem] leading-tight text-ink-soft mt-1.5">
-          Frontend, mobile, and backend tools I build and ship with:
+          Everything I reach for to build and ship:
         </p>
 
         {/* Groups for Page 3 written directly on the ruled paper (NO wrapper boxes) */}
@@ -93,7 +102,7 @@ export function TechStackPageLeft({
               <div className="inline-flex items-center gap-2 mb-1">
                 <CategoryDoodleMarker title={group.title} />
                 <div>
-                  <h3 className="hand text-xl sm:text-2xl font-bold text-ink leading-none">
+                  <h3 className="hand text-2xl font-bold text-ink leading-none">
                     {group.title}
                   </h3>
                   <SketchUnderline className="w-full h-2 mt-0.5" color="red" />
@@ -110,7 +119,7 @@ export function TechStackPageLeft({
                       type="button"
                       onClick={() => onSelectTech(item)}
                       style={{ transform: `rotate(${tilt}deg)` }}
-                      className={`btn tech-sticker hand text-sm sm:text-base cursor-pointer ${
+                      className={`btn tech-sticker hand text-base cursor-pointer ${
                         isSelected
                           ? 'tech-sticker-active font-bold'
                           : 'tech-sticker-idle font-semibold'
@@ -129,15 +138,18 @@ export function TechStackPageLeft({
 
       {/* Bottom margin note & coffee doodle positioned cleanly in open footer zone */}
       <div className="diary-item flex items-center justify-between pt-1 pr-1">
-        <p className="hand text-xs sm:text-sm leading-tight text-ink md:hidden">
-          <strong className="text-crimson underline">{selectedTech.name}:</strong>{' '}
-          {selectedTech.note}
-        </p>
-        <span className="hidden md:inline-flex items-center gap-1.5 hand text-xs font-bold text-crimson ml-auto mr-3 pointer-events-none select-none">
-          <span>tap any sticker to read Gabo&apos;s note on p. 4</span>
-          <DoodleArrow color="red" className="w-6 h-3.5" />
-        </span>
-        <DoodleCoffee className="w-7 h-8 rotate-6 opacity-85 pointer-events-none select-none shrink-0" />
+        {isDesktop ? (
+          <span className="inline-flex items-center gap-1.5 hand text-xs font-bold text-crimson ml-auto mr-3 pointer-events-none select-none">
+            <span>tap any sticker to read Gabo&apos;s note on p. 4</span>
+            <DoodleArrow color="red" className="w-6 h-3.5" />
+          </span>
+        ) : (
+          <p className="hand text-sm leading-tight text-ink max-w-[340px]">
+            <strong className="text-crimson underline">{selectedTech.name}:</strong>{' '}
+            {selectedTech.note}
+          </p>
+        )}
+        <DoodleCoffee className="w-7 h-8 rotate-6 opacity-85 pointer-events-none select-none shrink-0 ml-auto" />
       </div>
     </div>
   )
@@ -148,6 +160,7 @@ export function TechStackPageRight({
   onSelectTech,
 }: TechStackPageProps) {
   const rightGroups = TECH_GROUPS.filter((g) => g.page === 2)
+  const totalTools = TECH_GROUPS.reduce((n, g) => n + g.items.length, 0)
 
   return (
     <div className="h-full flex flex-col justify-between relative pt-0.5 pb-5">
@@ -163,21 +176,21 @@ export function TechStackPageRight({
       <div>
         <div className="diary-item flex items-start justify-between gap-2">
           <div>
-            <h2 className="hand text-[2.4rem] sm:text-[2.65rem] font-bold text-ink leading-none whitespace-nowrap">
-              Data &amp; Tools
+            <h2 className="hand text-[2.65rem] font-bold text-ink leading-none whitespace-nowrap">
+              Tech Arsenal
             </h2>
-            <SketchUnderline className="w-40 sm:w-44 h-3 mt-1" color="red" />
+            <SketchUnderline className="w-44 h-3 mt-1" color="red" />
           </div>
           <div className="flex items-center gap-1 bg-crimson px-3 py-0.5 ink-pill -rotate-2 shrink-0 mt-1">
             <DoodleStar className="w-4 h-4" variant="outline" />
-            <span className="hand text-sm sm:text-base font-bold text-paper">
-              34 Tools Logged
+            <span className="hand text-base font-bold text-paper">
+              {totalTools} Tools Logged
             </span>
           </div>
         </div>
 
         <p className="diary-item hand text-[0.98rem] leading-tight text-ink-soft mt-1.5">
-          Databases, game engines, and daily workflow tools I ship with:
+          Lots more where those came from:
         </p>
 
         {/* Groups for Page 4 written directly on the ruled paper (NO wrapper boxes) */}
@@ -187,7 +200,7 @@ export function TechStackPageRight({
               <div className="inline-flex items-center gap-2 mb-1">
                 <CategoryDoodleMarker title={group.title} />
                 <div>
-                  <h3 className="hand text-xl sm:text-2xl font-bold text-ink leading-none">
+                  <h3 className="hand text-2xl font-bold text-ink leading-none">
                     {group.title}
                   </h3>
                   <SketchUnderline className="w-full h-2 mt-0.5" color="red" />
@@ -204,7 +217,7 @@ export function TechStackPageRight({
                       type="button"
                       onClick={() => onSelectTech(item)}
                       style={{ transform: `rotate(${tilt}deg)` }}
-                      className={`btn tech-sticker hand text-sm sm:text-base cursor-pointer ${
+                      className={`btn tech-sticker hand text-base cursor-pointer ${
                         isSelected
                           ? 'tech-sticker-active font-bold'
                           : 'tech-sticker-idle font-semibold'

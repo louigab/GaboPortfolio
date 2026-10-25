@@ -35,6 +35,7 @@ export interface ProjectEntry {
   img: string
   tilt: number
   note: string
+  link?: string
 }
 
 export interface CertEntry {
@@ -86,6 +87,14 @@ export const TECH_GROUPS: TechGroup[] = [
     ],
   },
   {
+    title: 'Game Development',
+    page: 1,
+    items: [
+      { name: 'Godot', note: 'Node-based 2D and 3D game engine for indie prototypes and mechanics.' },
+      { name: 'GDScript', isAddition: true, note: 'Gameplay scripting for physics, state machines, and scene signals in Godot.' },
+    ],
+  },
+  {
     title: 'Databases',
     page: 2,
     items: [
@@ -98,11 +107,13 @@ export const TECH_GROUPS: TechGroup[] = [
     ],
   },
   {
-    title: 'Game Development',
+    title: 'AI Tools',
     page: 2,
     items: [
-      { name: 'Godot', note: 'Node-based 2D and 3D game engine for indie prototypes and mechanics.' },
-      { name: 'GDScript', isAddition: true, note: 'Gameplay scripting for physics, state machines, and scene signals in Godot.' },
+      { name: 'Codex', isAddition: true, note: "OpenAI's autonomous coding agent for multi-step code generation, editing, and task execution." },
+      { name: 'Antigravity', isAddition: true, note: "Google's agentic IDE for orchestrating multi-agent coding and browser workflows." },
+      { name: 'Claude Code', isAddition: true, note: "Anthropic's CLI coding agent for deep codebase comprehension and autonomous refactoring." },
+      { name: 'OpenCode', isAddition: true, note: 'Open-source terminal agent for agentic dev workflows and tool orchestration.' },
     ],
   },
   {
@@ -186,6 +197,28 @@ export const ACHIEVEMENTS: AchievementEntry[] = [
 
 export const PROJECTS: ProjectEntry[] = [
   {
+    id: 'proj-wattwise',
+    title: 'WattWise',
+    category: '★ Capstone Project',
+    desc: 'AI-Based Smart Appliance Energy Consumption Monitoring and Optimization System with Predictive Cost Analysis.',
+    tech: ['Flutter', 'Python', 'IoT', 'AI / ML'],
+    img: '/project-images/project7.jpg',
+    tilt: -1.6,
+    note: 'Our academic capstone project — smart energy monitoring & predictive cost breakdown.',
+    link: 'https://www.wattwise-app.site/',
+  },
+  {
+    id: 'proj-carm',
+    title: 'Carm',
+    category: 'CRM & Workspace PWA',
+    desc: 'Progressive Web App combining CRM, deals, project tasks, multi-currency invoicing, and team collaboration into a unified workspace.',
+    tech: ['Next.js', 'TypeScript', 'Supabase', 'PWA'],
+    img: '/project-images/project8.jpg',
+    tilt: 1.8,
+    note: 'Centralizes customer relationships, deal pipelines & invoicing into one offline-ready PWA.',
+    link: 'https://carmhq.vercel.app/',
+  },
+  {
     id: 'proj-1',
     title: 'REVU: Gamified Flashcards',
     category: 'Mobile Learning App',
@@ -196,24 +229,14 @@ export const PROJECTS: ProjectEntry[] = [
     note: 'Helps students stay motivated while reviewing and remembering learning materials.',
   },
   {
-    id: 'proj-2',
-    title: 'Fastfood Ordering App',
-    category: 'Mobile Ordering App',
-    desc: 'Mobile food-ordering application for browsing menus, managing customer details, selecting items, reviewing orders, and choosing a payment method.',
-    tech: ['Android Studio', 'Java', 'Supabase'],
-    img: '/project-images/project2.png',
-    tilt: 2.1,
-    note: 'Makes ordering food faster and more convenient for customers.',
-  },
-  {
-    id: 'proj-3',
-    title: 'SMARTEVENT',
-    category: 'Event Management App',
-    desc: 'Event management application for discovering events, viewing event details, booking activities, communicating with attendees, and checking event history.',
+    id: 'proj-5',
+    title: 'Strumm',
+    category: 'Mobile Guitar Tuner',
+    desc: 'Mobile guitar-tuning application with real-time pitch detection, tuning feedback, and support for different guitar tuning modes.',
     tech: ['Flutter', 'Supabase'],
-    img: '/project-images/project3.png',
-    tilt: -1.4,
-    note: 'Keeps event discovery, booking, and attendee communication organized in one place.',
+    img: '/project-images/project5.png',
+    tilt: -2.2,
+    note: 'Helps guitar players tune their instruments more accurately and easily.',
   },
   {
     id: 'proj-4',
@@ -226,14 +249,24 @@ export const PROJECTS: ProjectEntry[] = [
     note: 'Turns a simple game concept into an entertaining and interactive player experience.',
   },
   {
-    id: 'proj-5',
-    title: 'Strumm',
-    category: 'Mobile Guitar Tuner',
-    desc: 'Mobile guitar-tuning application with real-time pitch detection, tuning feedback, and support for different guitar tuning modes.',
+    id: 'proj-3',
+    title: 'SMARTEVENT',
+    category: 'Event Management App',
+    desc: 'Event management application for discovering events, viewing event details, booking activities, communicating with attendees, and checking event history.',
     tech: ['Flutter', 'Supabase'],
-    img: '/project-images/project5.png',
-    tilt: -2.2,
-    note: 'Helps guitar players tune their instruments more accurately and easily.',
+    img: '/project-images/project3.png',
+    tilt: -1.4,
+    note: 'Keeps event discovery, booking, and attendee communication organized in one place.',
+  },
+  {
+    id: 'proj-2',
+    title: 'Fastfood Ordering App',
+    category: 'Mobile Ordering App',
+    desc: 'Mobile food-ordering application for browsing menus, managing customer details, selecting items, reviewing orders, and choosing a payment method.',
+    tech: ['Android Studio', 'Java', 'Supabase'],
+    img: '/project-images/project2.png',
+    tilt: 2.1,
+    note: 'Makes ordering food faster and more convenient for customers.',
   },
   {
     id: 'proj-6',
@@ -303,6 +336,24 @@ export const CERTIFICATES: CertEntry[] = [
     note: 'Document automation, structured templates, and technical formatting.',
   },
   {
+    id: 'cert-codechum-5th',
+    title: 'NPC 2025 · 5th Place',
+    issuer: 'CodeChum',
+    year: '2025',
+    img: '/certificates/codechumrecog_certificate.jpg',
+    tilt: -1.8,
+    note: 'Won 5th place in Group Stage 1 of the CodeChum National Programming Challenge 2025.',
+  },
+  {
+    id: 'cert-codechum-participation',
+    title: 'NPC 2025 Participation',
+    issuer: 'CodeChum',
+    year: '2025',
+    img: '/certificates/codechumparticipatio-certificate.jpg',
+    tilt: 1.9,
+    note: 'Certificate of Participation in Group Stage 1 of the National Programming Challenge Season 2.',
+  },
+  {
     id: 'cert-ppt',
     title: 'PowerPoint 2019 Associate',
     issuer: 'Microsoft Office Specialist',
@@ -311,6 +362,49 @@ export const CERTIFICATES: CertEntry[] = [
     tilt: -2.0,
     note: 'Pitch deck storytelling and visual presentation structure.',
   },
+]
+
+export interface NavTabItem {
+  id: string
+  label: string
+  shortLabel?: string
+  targetPage: number
+  spreadIndexes: number[]
+  mobilePages: number[]
+  exactPages: number[]
+}
+
+export const NAV_TABS: NavTabItem[] = [
+  { id: 'intro', label: 'Intro', shortLabel: 'Intro', targetPage: 0, spreadIndexes: [0], mobilePages: [0], exactPages: [0] },
+  { id: 'me', label: 'Me', shortLabel: 'Me', targetPage: 1, spreadIndexes: [0], mobilePages: [1], exactPages: [1] },
+  { id: 'tech', label: 'Tech Stack', shortLabel: 'Tech', targetPage: 2, spreadIndexes: [1], mobilePages: [2, 3], exactPages: [2, 3] },
+  { id: 'achievements', label: 'Achievements', shortLabel: 'Awards', targetPage: 4, spreadIndexes: [2], mobilePages: [4, 5], exactPages: [4, 5] },
+  { id: 'projects', label: 'Projects', shortLabel: 'Projects', targetPage: 6, spreadIndexes: [3, 4], mobilePages: [6, 7, 8], exactPages: [6, 7, 8, 9] },
+  { id: 'certs', label: 'Certs', shortLabel: 'Certs', targetPage: 10, spreadIndexes: [5], mobilePages: [10], exactPages: [10] },
+  { id: 'notes', label: 'Notes', shortLabel: 'Notes', targetPage: 11, spreadIndexes: [5], mobilePages: [11], exactPages: [11] },
+]
+
+export interface MobilePageTab {
+  id: string
+  label: string
+  page: number
+}
+
+// One thumb-index tab per mobile page (desktop grouped tabs stay in NAV_TABS).
+// Page 9 is the blank desktop spread-filler and is skipped in 1-page mode.
+// Short diary-voice labels; repeated labels per section are intentional.
+export const MOBILE_PAGE_TABS: MobilePageTab[] = [
+  { id: 'intro', label: 'Intro', page: 0 },
+  { id: 'me', label: 'Me', page: 1 },
+  { id: 'tech-1', label: 'Tech', page: 2 },
+  { id: 'tech-2', label: 'Tech', page: 3 },
+  { id: 'awards-1', label: 'Award', page: 4 },
+  { id: 'awards-2', label: 'Award', page: 5 },
+  { id: 'projects-1', label: 'Proj', page: 6 },
+  { id: 'projects-2', label: 'Proj', page: 7 },
+  { id: 'projects-3', label: 'Proj', page: 8 },
+  { id: 'certs', label: 'Cert', page: 10 },
+  { id: 'notes', label: 'Note', page: 11 },
 ]
 
 export interface SpreadMeta {
@@ -324,16 +418,16 @@ export interface SpreadMeta {
 export const SPREADS_META: SpreadMeta[] = [
   {
     spreadIndex: 0,
-    tabLabel: 'Cover & Me',
-    leftPageTitle: 'Cover Page',
+    tabLabel: 'Intro & Me',
+    leftPageTitle: 'Intro Logbook',
     rightPageTitle: 'About Louis (Gabo)',
-    mascotSpeech: 'Use Left/Right arrow keys or click the page corner to flip!',
+    mascotSpeech: 'Grab a page corner to flip, or use the Left/Right arrow keys!',
   },
   {
     spreadIndex: 1,
     tabLabel: 'Tech Stack',
-    leftPageTitle: 'Frontend, Mobile & Backend',
-    rightPageTitle: 'DBs, Godot & Tools',
+    leftPageTitle: 'Tech Arsenal',
+    rightPageTitle: 'Tech Arsenal',
     mascotSpeech: 'Click any tool chip to read my margin notes on how I use it!',
   },
   {
@@ -346,15 +440,22 @@ export const SPREADS_META: SpreadMeta[] = [
   {
     spreadIndex: 3,
     tabLabel: 'Projects',
-    leftPageTitle: 'Shipped Builds',
-    rightPageTitle: 'More Experiments',
-    mascotSpeech: 'Android, Flutter, and Godot builds I shipped — tap any clipping!',
+    leftPageTitle: 'Shipped Work',
+    rightPageTitle: 'More Builds',
+    mascotSpeech: 'Capstone WattWise, Carm PWA, and mobile apps I shipped — tap any clipping!',
   },
   {
     spreadIndex: 4,
-    tabLabel: 'Certs & Note',
+    tabLabel: 'Projects',
+    leftPageTitle: 'More Builds',
+    rightPageTitle: 'Blank Page',
+    mascotSpeech: 'Fast food ordering app and fishing companion app — tap to zoom!',
+  },
+  {
+    spreadIndex: 5,
+    tabLabel: 'Certs & Notes',
     leftPageTitle: 'Official Certificates',
     rightPageTitle: 'Pass Me a Note',
-    mascotSpeech: 'Check a box on Page 10 and pass me a note before you close the diary!',
+    mascotSpeech: '9 verified credentials & competition awards taped in — tap to zoom!',
   },
 ]

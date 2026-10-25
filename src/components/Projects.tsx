@@ -32,16 +32,21 @@ function ProjectScrapbookList({
   pageOffset?: number
 }) {
   return (
-    <div className="mt-1.5 flex-1 flex flex-col justify-between pb-1">
+    <div
+      className={`mt-1 flex-1 flex flex-col pb-1 ${
+        items.length >= 3 ? 'justify-between' : 'justify-start gap-6'
+      }`}
+    >
       {items.map((proj, idx) => {
         const isReversed = (idx + pageOffset) % 2 === 1
         const tapePreset = TAPE_PRESETS[(idx + pageOffset) % TAPE_PRESETS.length]
-        const isCrimsonTag = (idx + pageOffset) % 2 === 0
+        const isCapstone = proj.category.includes('Capstone')
+        const isCrimsonTag = isCapstone || (idx + pageOffset) % 2 === 0
 
         return (
           <article
             key={proj.id}
-            className={`diary-item relative flex items-center gap-3 px-1 py-0 ${
+            className={`diary-item relative flex items-center gap-2.5 px-0.5 py-0 ${
               isReversed ? 'flex-row-reverse' : 'flex-row'
             }`}
           >
@@ -53,12 +58,19 @@ function ProjectScrapbookList({
                 tilt={proj.tilt}
                 tapePosition={tapePreset}
                 className="w-full"
-                imgClassName="w-full h-[68px] object-cover"
+                imgClassName="w-full h-[66px] object-cover"
                 onInspect={() =>
                   onInspectPhoto({
                     src: proj.img,
-                    title: proj.title,
+                    title: isCapstone
+                      ? `${proj.title} (Capstone Project)`
+                      : proj.id === 'proj-carm'
+                      ? `${proj.title} — CRM & Workspace PWA`
+                      : proj.title,
                     caption: `${proj.desc} (${proj.tech.join(', ')})`,
+                    link: proj.link,
+                    tilt: proj.tilt,
+                    tapePosition: tapePreset,
                   })
                 }
               />
@@ -68,21 +80,52 @@ function ProjectScrapbookList({
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-1.5">
                 <div className="min-w-0 shrink">
-                  <h3 className="hand text-lg font-bold text-ink leading-tight">
-                    {proj.title}
-                  </h3>
+                  {proj.link ? (
+                    <a
+                      href={proj.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hand text-lg font-bold text-ink hover:text-crimson leading-tight inline-flex items-center gap-1 group cursor-pointer transition-colors"
+                      title={`Visit ${proj.title} (opens in new tab)`}
+                    >
+                      <span className="underline decoration-crimson/40 group-hover:decoration-crimson decoration-2 underline-offset-2">
+                        {proj.title}
+                      </span>
+                      <span className="text-xs text-crimson group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform inline-block">
+                        ↗
+                      </span>
+                    </a>
+                  ) : (
+                    <h3 className="hand text-lg font-bold text-ink leading-tight flex items-center gap-1">
+                      {proj.title}
+                    </h3>
+                  )}
                   <SketchUnderline className="w-full h-1.5 mt-0.5" color="red" />
                 </div>
 
-                <span
-                  className={`hand text-[11px] font-bold px-1.5 py-0.5 border-2 border-ink rounded-xs shrink-0 whitespace-nowrap ${
-                    isCrimsonTag
-                      ? 'bg-crimson text-paper -rotate-2'
-                      : 'bg-ink text-paper rotate-2'
-                  }`}
-                >
-                  {proj.category}
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {proj.link && (
+                    <a
+                      href={proj.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn hand text-[11px] font-bold px-1.5 py-0.5 border border-ink rounded-xs bg-[#fff8e7] text-ink hover:bg-crimson hover:text-paper -rotate-1 shadow-2xs inline-flex items-center gap-0.5 cursor-pointer transition-colors"
+                      title={`Visit ${proj.title}`}
+                    >
+                      <span>Visit</span>
+                      <span>↗</span>
+                    </a>
+                  )}
+                  <span
+                    className={`hand text-[11px] font-bold px-1.5 py-0.5 border-2 border-ink rounded-xs shrink-0 whitespace-nowrap ${
+                      isCrimsonTag
+                        ? 'bg-crimson text-paper -rotate-2 shadow-2xs'
+                        : 'bg-ink text-paper rotate-2'
+                    }`}
+                  >
+                    {proj.category}
+                  </span>
+                </div>
               </div>
 
               <p className="hand text-[0.84rem] leading-[1.14] text-ink mt-0.5">
@@ -135,13 +178,13 @@ export function ProjectsPageLeft({ onInspectPhoto }: ProjectsPageProps) {
 
       <div className="flex-1 flex flex-col">
         <div className="diary-item">
-          <h2 className="hand text-[2.25rem] sm:text-[2.5rem] font-bold text-ink leading-none whitespace-nowrap">
+          <h2 className="hand text-[2.5rem] font-bold text-ink leading-none whitespace-nowrap">
             Shipped Work
           </h2>
-          <SketchUnderline className="w-40 sm:w-44 h-3 mt-0.5" color="red" />
+          <SketchUnderline className="w-44 h-3 mt-0.5" color="red" />
         </div>
         <p className="diary-item hand text-[0.98rem] leading-tight text-ink-soft mt-1">
-          Torn screenshots taped on the lines (tap to zoom):
+          Everything I've built and shipped (tap to zoom):
         </p>
 
         <ProjectScrapbookList
@@ -167,13 +210,13 @@ export function ProjectsPageRight({ onInspectPhoto }: ProjectsPageProps) {
 
       <div className="flex-1 flex flex-col">
         <div className="diary-item">
-          <h2 className="hand text-[2.25rem] sm:text-[2.5rem] font-bold text-ink leading-none whitespace-nowrap">
+          <h2 className="hand text-[2.5rem] font-bold text-ink leading-none whitespace-nowrap">
             More Builds
           </h2>
-          <SketchUnderline className="w-40 sm:w-44 h-3 mt-0.5" color="red" />
+          <SketchUnderline className="w-44 h-3 mt-0.5" color="red" />
         </div>
         <p className="diary-item hand text-[0.98rem] leading-tight text-ink-soft mt-1">
-          Flutter apps, a Godot game, and more (tap to zoom):
+          Extra builds and experiments (tap to zoom):
         </p>
 
         <ProjectScrapbookList
@@ -184,6 +227,45 @@ export function ProjectsPageRight({ onInspectPhoto }: ProjectsPageProps) {
       </div>
     </div>
   )
+}
+
+export function ProjectsPageMoreLeft({ onInspectPhoto }: ProjectsPageProps) {
+  const thirdHalf = PROJECTS.slice(6, 8)
+
+  return (
+    <div className="h-full flex flex-col relative pt-0.5 pb-3">
+      {/* Margin Doodles (out of flex flow) */}
+      <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
+        <DoodleCodeBrackets
+          variant="slash"
+          className="w-10 h-6 absolute right-1 top-1 -rotate-6 opacity-90"
+        />
+        <DoodleStar className="w-5 h-5 absolute right-13 top-2 rotate-12" />
+      </div>
+
+      <div className="flex-1 flex flex-col">
+        <div className="diary-item">
+          <h2 className="hand text-[2.5rem] font-bold text-ink leading-none whitespace-nowrap">
+            More Builds
+          </h2>
+          <SketchUnderline className="w-44 h-3 mt-0.5" color="red" />
+        </div>
+        <p className="diary-item hand text-[0.98rem] leading-tight text-ink-soft mt-1">
+          Extra builds and experiments (tap to zoom):
+        </p>
+
+        <ProjectScrapbookList
+          items={thirdHalf}
+          onInspectPhoto={onInspectPhoto}
+          pageOffset={0}
+        />
+      </div>
+    </div>
+  )
+}
+
+export function ProjectsPageMoreRight() {
+  return <div className="h-full w-full" />
 }
 
 export default ProjectsPageLeft
