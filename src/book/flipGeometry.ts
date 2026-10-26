@@ -389,15 +389,16 @@ export function solveBookCurl(params: {
       y: foldMidCanonical.y,
     }
 
-    // 3D perspective arch lift strictly around the fold line (origin 0,0 -> Z === 0 everywhere along the fold!)
+    // 3D perspective arch lift strictly around the fold line with positive Z elevation
     const liftDeg = Math.round(7.5 * arch * 100) / 100
     const tx = Math.round(-n.y * 10000) / 10000
     const ty = Math.round(n.x * 10000) / 10000
     const mx = Math.round(spreadFoldMid.x * 100) / 100
     const my = Math.round(spreadFoldMid.y * 100) / 100
+    const zLift = Math.round(28 * arch * 10) / 10
     const flapLift3DCss =
       liftDeg > 0.01
-        ? `translate3d(${mx}px, ${my}px, 0px) rotate3d(${tx}, ${ty}, 0, ${liftDeg}deg) translate3d(${-mx}px, ${-my}px, 0px)`
+        ? `translate3d(${mx}px, ${my}px, ${zLift}px) rotate3d(${tx}, ${ty}, 0, ${liftDeg}deg) translate3d(${-mx}px, ${-my}px, 0px)`
         : 'none'
 
     const frontLocalMid = foldMidCanonical
@@ -475,9 +476,10 @@ export function solveBookCurl(params: {
     const ty = Math.round(nsx * 10000) / 10000
     const mx = Math.round(spreadFoldMid.x * 100) / 100
     const my = Math.round(spreadFoldMid.y * 100) / 100
+    const zLift = Math.round(28 * arch * 10) / 10
     const flapLift3DCss =
       liftDeg > 0.01
-        ? `translate3d(${mx}px, ${my}px, 0px) rotate3d(${tx}, ${ty}, 0, ${liftDeg}deg) translate3d(${-mx}px, ${-my}px, 0px)`
+        ? `translate3d(${mx}px, ${my}px, ${zLift}px) rotate3d(${tx}, ${ty}, 0, ${liftDeg}deg) translate3d(${-mx}px, ${-my}px, 0px)`
         : 'none'
 
     const frontLocalMid: Vec = { x: W - foldMidCanonical.x, y: foldMidCanonical.y }

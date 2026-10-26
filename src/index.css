@@ -62,6 +62,10 @@ body {
   font-family: var(--font-marker);
 }
 
+.elite {
+  font-family: "Special Elite", "Courier New", Courier, monospace;
+}
+
 /* Notebook ruled paper + vertical red margin line */
 [data-ui="diary-book"] .notebook-page {
   background-image:
@@ -120,8 +124,13 @@ body {
 
 [data-ui="diary-book"] .ink-tab {
   border: 2px solid var(--color-ink);
-  border-bottom-width: 3px;
-  border-radius: 7px 7px 2px 2px;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  transition: background-color 150ms var(--ease-out-strong), color 150ms var(--ease-out-strong);
+}
+
+.ink-tab-animate {
+  will-change: transform, opacity;
 }
 
 /* Underlined directly-on-paper notebook input (no container box) */
@@ -196,17 +205,17 @@ body {
 }
 
 /* Magazine cutout hover & press transitions (Emil Kowalski principles) */
-.magazine-cutout {
+.magazine-cutout.cursor-pointer {
   transition: transform 180ms var(--ease-out-strong);
 }
 
-.magazine-cutout:active {
+.magazine-cutout.cursor-pointer:active {
   transform: scale(0.97) !important;
 }
 
 /* Gate hover effects behind fine pointer so touch devices never stick */
 @media (hover: hover) and (pointer: fine) {
-  .magazine-cutout:hover {
+  .magazine-cutout.cursor-pointer:hover {
     transform: rotate(0deg) scale(1.035) !important;
     z-index: 30;
   }
@@ -294,22 +303,36 @@ body {
   perspective-origin: 50% 50%;
 }
 
-/* Closed book idle presence */
-@keyframes bookIdleBreath {
+/* Visual guide arrow animations pointing to the book lock */
+@keyframes lockArrowH {
   0%, 100% {
-    transform: translate3d(0px, 0px, 10px) rotateY(0deg) rotateX(0deg);
+    transform: translateX(0);
   }
   50% {
-    transform: translate3d(0px, -2px, 11px) rotateY(-0.8deg) rotateX(0.45deg);
+    transform: translateX(-6px);
   }
 }
 
-.book-idle-presence {
-  animation: bookIdleBreath 5s ease-in-out infinite;
+@keyframes lockArrowV {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(5px);
+  }
+}
+
+.animate-lock-arrow-h {
+  animation: none;
+}
+
+.animate-lock-arrow-v {
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .book-idle-presence {
+  .animate-lock-arrow-h,
+  .animate-lock-arrow-v {
     animation: none !important;
   }
 }
@@ -332,6 +355,7 @@ body {
   position: absolute;
   width: 24px;
   height: 24px;
+  z-index: 35;
   pointer-events: none;
   transition: transform 160ms var(--ease-out-strong), opacity 160ms ease;
   opacity: 0.34;

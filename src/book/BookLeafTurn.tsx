@@ -198,12 +198,13 @@ export default function BookLeafTurn({
 
   return (
     <div
-      className="pointer-events-none absolute select-none"
+      className="pointer-events-none absolute select-none z-50"
       style={{
         left: `${offsetLeft}px`,
         top: `${offsetTop}px`,
         width: `${totalW}px`,
         height: `${pageH}px`,
+        zIndex: 50,
       }}
       aria-hidden="true"
     >

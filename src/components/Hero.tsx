@@ -1,4 +1,4 @@
-import MagazineCutout, { type InspectablePhoto } from './MagazineCutout'
+import MagazineCutout from './MagazineCutout'
 import GaboMascot from './GaboMascot'
 import { TECH_GROUPS } from '../data/portfolioData'
 import {
@@ -17,11 +17,15 @@ import {
 
 interface HeroProps {
   onGoToPage: (pageIndex: number) => void
-  onInspectPhoto: (photo: InspectablePhoto) => void
   flipTrigger?: number
+  isDesktop?: boolean
 }
 
-export default function Hero({ onGoToPage, onInspectPhoto, flipTrigger = 0 }: HeroProps) {
+export default function Hero({
+  onGoToPage,
+  flipTrigger = 0,
+  isDesktop = true,
+}: HeroProps) {
   return (
     <div className="h-full flex flex-col justify-between relative pt-0.5">
       {/* Background & Margin Doodles positioned to match the target reference image */}
@@ -96,20 +100,21 @@ export default function Hero({ onGoToPage, onInspectPhoto, flipTrigger = 0 }: He
             tapePosition="portrait"
             priority={true}
             imgClassName="w-[172px] h-[194px] object-cover object-top"
-            onInspect={onInspectPhoto}
           />
         </div>
 
         {/* Right: Tall Cartoon Gabo Character (positioned up so head sits under laptop/mugs) */}
         <div className="relative z-10 mr-12 -mt-18">
-          <GaboMascot variant="hero" flipTrigger={flipTrigger} />
+          <GaboMascot variant="hero" flipTrigger={flipTrigger} isDesktop={isDesktop} />
         </div>
       </div>
 
       {/* Bottom Section: Flip instruction on the lines + 2 Large Torn Red Scrap Buttons */}
       <div className="diary-item relative z-20 text-center pl-5 pr-1 pt-0.5">
         <p className="hand text-[1.12rem] leading-[1.2] font-medium text-ink mb-1.5 max-w-[310px] mx-auto">
-          Grab a page corner to flip my diary, or use the Left/Right arrow keys!
+          {isDesktop
+            ? 'Grab a page corner to flip my diary, or use the Left/Right arrow keys!'
+            : 'Swipe to flip pages, or grab a corner!'}
         </p>
 
         <div className="flex items-center justify-center gap-3.5">

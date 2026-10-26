@@ -67,10 +67,14 @@ function ProjectScrapbookList({
                       : proj.id === 'proj-carm'
                       ? `${proj.title} — CRM & Workspace PWA`
                       : proj.title,
-                    caption: `${proj.desc} (${proj.tech.join(', ')})`,
+                    caption: proj.platformStack
+                      ? proj.desc
+                      : `${proj.desc} (${proj.tech.join(', ')})`,
                     link: proj.link,
                     tilt: proj.tilt,
                     tapePosition: tapePreset,
+                    platformStack: proj.platformStack,
+                    hardwareStack: proj.hardwareStack,
                   })
                 }
               />

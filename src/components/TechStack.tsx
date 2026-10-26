@@ -1,7 +1,5 @@
-import { TECH_GROUPS, type TechItem } from '../data/portfolioData'
-import GaboMascot from './GaboMascot'
+import { TECH_GROUPS } from '../data/portfolioData'
 import {
-  DoodleArrow,
   DoodleCodeBrackets,
   DoodleCoffee,
   DoodleLaptop,
@@ -9,12 +7,6 @@ import {
   DoodleStar,
   SketchUnderline,
 } from './InkDoodles'
-
-interface TechStackPageProps {
-  selectedTech: TechItem
-  onSelectTech: (item: TechItem) => void
-  isDesktop?: boolean
-}
 
 const STICKER_TILTS = [-1.6, 1.3, -0.9, 1.8, -1.2, 0.8, -1.9, 1.1]
 
@@ -68,11 +60,7 @@ function CategoryDoodleMarker({ title }: { title: string }) {
   )
 }
 
-export function TechStackPageLeft({
-  selectedTech,
-  onSelectTech,
-  isDesktop = true,
-}: TechStackPageProps) {
+export function TechStackPageLeft() {
   const leftGroups = TECH_GROUPS.filter((g) => g.page === 1)
 
   return (
@@ -95,7 +83,7 @@ export function TechStackPageLeft({
           Everything I reach for to build and ship:
         </p>
 
-        {/* Groups for Page 3 written directly on the ruled paper (NO wrapper boxes) */}
+        {/* Groups for Page 3 written directly on the ruled paper */}
         <div className="mt-3 space-y-3">
           {leftGroups.map((group) => (
             <div key={group.title} className="diary-item">
@@ -110,24 +98,16 @@ export function TechStackPageLeft({
               </div>
 
               <div className="flex flex-wrap gap-1.5 pt-0.5">
-                {group.items.map((item, idx) => {
-                  const isSelected = selectedTech.name === item.name
+                {group.items.map((techName, idx) => {
                   const tilt = STICKER_TILTS[idx % STICKER_TILTS.length]
                   return (
-                    <button
-                      key={item.name}
-                      type="button"
-                      onClick={() => onSelectTech(item)}
+                    <span
+                      key={techName}
                       style={{ transform: `rotate(${tilt}deg)` }}
-                      className={`btn tech-sticker hand text-base cursor-pointer ${
-                        isSelected
-                          ? 'tech-sticker-active font-bold'
-                          : 'tech-sticker-idle font-semibold'
-                      }`}
+                      className="tech-sticker tech-sticker-idle hand text-base font-semibold inline-block"
                     >
-                      {isSelected && <span className="text-xs">★</span>}
-                      <span>{item.name}</span>
-                    </button>
+                      {techName}
+                    </span>
                   )
                 })}
               </div>
@@ -136,29 +116,15 @@ export function TechStackPageLeft({
         </div>
       </div>
 
-      {/* Bottom margin note & coffee doodle positioned cleanly in open footer zone */}
-      <div className="diary-item flex items-center justify-between pt-1 pr-1">
-        {isDesktop ? (
-          <span className="inline-flex items-center gap-1.5 hand text-xs font-bold text-crimson ml-auto mr-3 pointer-events-none select-none">
-            <span>tap any sticker to read Gabo&apos;s note on p. 4</span>
-            <DoodleArrow color="red" className="w-6 h-3.5" />
-          </span>
-        ) : (
-          <p className="hand text-sm leading-tight text-ink max-w-[340px]">
-            <strong className="text-crimson underline">{selectedTech.name}:</strong>{' '}
-            {selectedTech.note}
-          </p>
-        )}
-        <DoodleCoffee className="w-7 h-8 rotate-6 opacity-85 pointer-events-none select-none shrink-0 ml-auto" />
+      {/* Bottom margin doodle positioned cleanly in open footer zone */}
+      <div className="diary-item flex items-center justify-end pt-1 pr-1">
+        <DoodleCoffee className="w-7 h-8 rotate-6 opacity-85 pointer-events-none select-none shrink-0" />
       </div>
     </div>
   )
 }
 
-export function TechStackPageRight({
-  selectedTech,
-  onSelectTech,
-}: TechStackPageProps) {
+export function TechStackPageRight() {
   const rightGroups = TECH_GROUPS.filter((g) => g.page === 2)
   const totalTools = TECH_GROUPS.reduce((n, g) => n + g.items.length, 0)
 
@@ -193,7 +159,7 @@ export function TechStackPageRight({
           Lots more where those came from:
         </p>
 
-        {/* Groups for Page 4 written directly on the ruled paper (NO wrapper boxes) */}
+        {/* Groups for Page 4 written directly on the ruled paper */}
         <div className="mt-3 space-y-2.5">
           {rightGroups.map((group) => (
             <div key={group.title} className="diary-item">
@@ -208,39 +174,22 @@ export function TechStackPageRight({
               </div>
 
               <div className="flex flex-wrap gap-1.5 pt-0.5">
-                {group.items.map((item, idx) => {
-                  const isSelected = selectedTech.name === item.name
+                {group.items.map((techName, idx) => {
                   const tilt = STICKER_TILTS[(idx + 3) % STICKER_TILTS.length]
                   return (
-                    <button
-                      key={item.name}
-                      type="button"
-                      onClick={() => onSelectTech(item)}
+                    <span
+                      key={techName}
                       style={{ transform: `rotate(${tilt}deg)` }}
-                      className={`btn tech-sticker hand text-base cursor-pointer ${
-                        isSelected
-                          ? 'tech-sticker-active font-bold'
-                          : 'tech-sticker-idle font-semibold'
-                      }`}
+                      className="tech-sticker tech-sticker-idle hand text-base font-semibold inline-block"
                     >
-                      {isSelected && <span className="text-xs">★</span>}
-                      <span>{item.name}</span>
-                    </button>
+                      {techName}
+                    </span>
                   )
                 })}
               </div>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Live interactive mascot at bottom of Page 4 */}
-      <div className="mt-1 pb-1 flex items-end justify-between gap-2">
-        <GaboMascot
-          variant="compact"
-          speech={`${selectedTech.name}: ${selectedTech.note}`}
-        />
-
       </div>
     </div>
   )

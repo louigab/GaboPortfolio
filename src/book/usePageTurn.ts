@@ -31,7 +31,7 @@ export interface PageTurnController {
   /** Programmatic smooth physical page turn (buttons, keyboard, section tabs) */
   triggerFlip: (
     dir: TurnDirection,
-    options?: { targetPage?: number; corner?: Corner }
+    options?: { targetPage?: number; corner?: Corner; duration?: number }
   ) => void
   /** Subtle live paper corner peel when hovering corner on fine-pointer devices */
   onCornerHoverEnter: (dir: TurnDirection, corner: Corner) => void
@@ -254,11 +254,12 @@ export function usePageTurn(params: {
         const restingY = st.corner === 'bottom' ? H : 0
 
         if (st.animUseNaturalArc) {
-          // C-infinity continuous Hermite page-turn curve: brisk finger pick-up, smooth diagonal peel, air-cushioned settle
-          const omt = 1 - rawT
-          const eased =
-            0.85 * rawT * omt * omt + rawT * rawT * (3 - 2 * rawT)
-          const u = clamp(eased, 0, 1)
+          // Quintic SmootherStep curve: zero initial velocity, zero jerk, butter-smooth peel & air-cushioned settle
+          const u = clamp(
+            rawT * rawT * rawT * (rawT * (rawT * 6 - 15) + 10),
+            0,
+            1
+          )
           // On mobile 'prev', sheet uncurls from t=1 (-W) back to t=0 (+W)
           const arcT = !pr.isDesktop && st.direction === 'prev' ? 1 - u : u
           st.currentP = sampleNaturalTurnCorner(W, H, st.corner, arcT)
@@ -361,7 +362,7 @@ export function usePageTurn(params: {
   const triggerFlip = useCallback(
     (
       dir: TurnDirection,
-      options?: { targetPage?: number; corner?: Corner }
+      options?: { targetPage?: number; corner?: Corner; duration?: number }
     ) => {
       const st = engineRef.current
       if (st.mode === 'animating' || st.mode === 'dragging') return
@@ -397,7 +398,7 @@ export function usePageTurn(params: {
       st.targetPage = options?.targetPage
       st.mode = 'animating'
       st.animStartTime = performance.now()
-      st.animDuration = 680
+      st.animDuration = options?.duration ?? 680
       st.animWillCommit = true
 
       if (reuseHover) {

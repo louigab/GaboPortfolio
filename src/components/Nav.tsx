@@ -1,4 +1,10 @@
-import { NAV_TABS, type NavTabItem } from '../data/portfolioData'
+import { useLayoutEffect, useRef } from 'react'
+import gsap from 'gsap'
+import {
+  DESKTOP_NAV_TABS,
+  MOBILE_NAV_TABS,
+  type NavTabItem,
+} from '../data/portfolioData'
 
 interface NavProps {
   currentPage: number
@@ -6,46 +12,120 @@ interface NavProps {
   onGoToPage: (pageIndex: number) => void
   flipTrigger: number
   isBookOpen?: boolean
-  onToggleCover?: () => void
+  isBookFullyOpen?: boolean
 }
 
 export default function Nav({
   currentPage,
   isDesktop,
   onGoToPage,
-  isBookOpen = true,
-  onToggleCover,
+  isBookOpen = false,
+  isBookFullyOpen = false,
 }: NavProps) {
   const activeSpread = Math.floor(currentPage / 2)
+  const isTargetVisible = isBookOpen && isBookFullyOpen
+  const navRef = useRef<HTMLElement>(null)
+  const isInitialLoadRef = useRef(true)
+  const prevVisibleRef = useRef(isTargetVisible)
+  const prevDesktopRef = useRef(isDesktop)
 
-  // DESKTOP SPREAD MODE: 2-page spread nav bar with centered tabs
-  // (Untouched — desktop behavior stays exactly as-is.)
+  // Handle tab entrance and exit animations synchronously with GSAP
+  useLayoutEffect(() => {
+    const navEl = navRef.current
+    if (!navEl) return
+
+    const buttons = navEl.querySelectorAll('.ink-tab-animate')
+    if (!buttons.length) return
+
+    const reducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    // Initial mount or responsive mode change: sync state without triggering entrance animation
+    const isModeChange = prevDesktopRef.current !== isDesktop
+    if (isInitialLoadRef.current || isModeChange) {
+      isInitialLoadRef.current = false
+      prevDesktopRef.current = isDesktop
+      prevVisibleRef.current = isTargetVisible
+      gsap.killTweensOf(buttons)
+
+      if (isTargetVisible) {
+        gsap.set(buttons, { clearProps: 'transform,opacity,scaleY' })
+      } else {
+        gsap.set(buttons, {
+          y: 48,
+          opacity: 0,
+          scaleY: 0.65,
+          transformOrigin: 'bottom center',
+        })
+      }
+      return
+    }
+
+    // Only run animation when visibility actually transitions
+    if (prevVisibleRef.current === isTargetVisible) return
+    prevVisibleRef.current = isTargetVisible
+
+    gsap.killTweensOf(buttons)
+
+    if (reducedMotion) {
+      if (isTargetVisible) {
+        gsap.set(buttons, { clearProps: 'transform,opacity,scaleY' })
+      } else {
+        gsap.set(buttons, { y: 48, opacity: 0, scaleY: 0.65 })
+      }
+      return
+    }
+
+    if (isTargetVisible) {
+      // Book is fully open: animate tabs sliding smoothly up from behind the book edge
+      gsap.fromTo(
+        buttons,
+        {
+          y: 48,
+          opacity: 0,
+          scaleY: 0.65,
+          transformOrigin: 'bottom center',
+        },
+        {
+          y: 0,
+          opacity: 1,
+          scaleY: 1,
+          duration: 0.38,
+          stagger: 0.035,
+          ease: 'back.out(1.6)',
+          clearProps: 'transform,opacity,scaleY',
+        }
+      )
+    } else {
+      // Book is closing: animate tabs sliding smoothly down deep behind the book edge
+      gsap.to(buttons, {
+        y: 48,
+        opacity: 0,
+        scaleY: 0.65,
+        transformOrigin: 'bottom center',
+        duration: 0.38,
+        stagger: 0.03,
+        ease: 'power2.inOut',
+      })
+    }
+  }, [isTargetVisible, isDesktop])
+
+  // DESKTOP SPREAD MODE: 2-page spread nav bar
+  // Sits flush directly behind top edge of book like physical notebook bookmarks
   if (isDesktop) {
     return (
-      <header className="w-full max-w-6xl mx-auto px-6 pt-1.5 pb-1 flex items-center justify-center gap-2 shrink-0 select-none">
-        {/* Desktop Notebook Index Tabs */}
+      <header className="w-full max-w-[976px] mx-auto px-2 h-[42px] flex items-end justify-center shrink-0 select-none relative z-0 -mb-[16px] overflow-visible pointer-events-none">
         <nav
+          ref={navRef}
           aria-label="Notebook sections"
-          className="min-w-0 flex-1 flex items-center justify-center gap-2 py-0.5"
+          aria-hidden={!isTargetVisible}
+          inert={!isTargetVisible}
+          className={`flex items-end justify-center gap-1.5 lg:gap-2 overflow-visible ${
+            isTargetVisible ? 'pointer-events-auto' : 'pointer-events-none'
+          }`}
         >
-          {/* Cover toggle tab */}
-          {onToggleCover && (
-            <button
-              type="button"
-              onClick={onToggleCover}
-              aria-label={isBookOpen ? 'Close book' : 'Open book'}
-              className={`btn hand text-base font-bold px-3 py-0.5 ink-tab whitespace-nowrap cursor-pointer transition-colors ${
-                !isBookOpen
-                  ? 'bg-crimson text-paper border-ink'
-                  : 'bg-paper-2 text-ink-soft hover:text-ink'
-              }`}
-              title={isBookOpen ? 'Close to front cover' : 'Open book'}
-            >
-              {isBookOpen ? '📕 Close Book' : '📖 Open Book'}
-            </button>
-          )}
-
-          {NAV_TABS.map((tab) => {
+          {DESKTOP_NAV_TABS.map((tab) => {
             const isTabActive = isBookOpen && tab.exactPages.includes(currentPage)
             const isSpreadActive = isBookOpen && tab.spreadIndexes.includes(activeSpread)
             return (
@@ -54,12 +134,13 @@ export default function Nav({
                 type="button"
                 onClick={() => onGoToPage(tab.targetPage)}
                 aria-current={isTabActive ? 'page' : undefined}
-                className={`btn hand text-lg font-bold px-3 py-0.5 ink-tab whitespace-nowrap cursor-pointer transition-colors ${
+                tabIndex={isTargetVisible ? 0 : -1}
+                className={`ink-tab-animate btn hand text-sm lg:text-base font-bold px-3 lg:px-3.5 pt-1.5 pb-5 ink-tab border-b-0 whitespace-nowrap cursor-pointer transition-colors ${
                   isTabActive
-                    ? 'bg-crimson text-paper border-ink'
+                    ? 'bg-crimson text-paper border-ink translate-y-[-3px] shadow-sm z-10'
                     : isSpreadActive
-                    ? 'bg-paper-2 text-ink border-ink hover:text-ink'
-                    : 'bg-paper text-ink-soft hover:text-ink'
+                    ? 'bg-paper-2 text-ink border-ink hover:text-ink hover:translate-y-[-1.5px]'
+                    : 'bg-paper text-ink-soft hover:text-ink hover:translate-y-[-1.5px]'
                 }`}
               >
                 {tab.label}
@@ -72,19 +153,13 @@ export default function Nav({
   }
 
   // MOBILE / TABLET PORTRAIT 1-PAGE MODE:
-  // Fitted Single-Row Top Tabs:
-  // - Open/Close Book is its OWN dedicated button (never mixed with section tabs)
-  // - All section tabs are distinct and match the PC NAV_TABS exactly
-  // - Sized to fit across the 494px width in a single row with ZERO horizontal scrolling
-  // - Multi-page sections cycle pages when tapped
+  // Sits flush directly on top edge of mobile book like physical bookmarks
   const handleMobileTabClick = (tab: NavTabItem) => {
-    // If book is closed, open directly to that section
     if (!isBookOpen) {
       onGoToPage(tab.targetPage)
       return
     }
 
-    // If currently on this section, cycle to next page in section
     const isCurrentSection = tab.mobilePages.includes(currentPage)
     if (isCurrentSection && tab.mobilePages.length > 1) {
       const currentIndex = tab.mobilePages.indexOf(currentPage)
@@ -96,30 +171,17 @@ export default function Nav({
   }
 
   return (
-    <header className="w-full max-w-[494px] mx-auto pt-2 pb-0.5 shrink-0 select-none z-40">
+    <header className="w-full max-w-[494px] mx-auto px-1 h-[34px] flex items-end justify-between shrink-0 select-none relative z-0 -mb-[12px] overflow-visible pointer-events-none">
       <nav
+        ref={navRef}
         aria-label="Notebook sections"
-        className="w-full flex items-center justify-between gap-1 py-0.5"
+        aria-hidden={!isTargetVisible}
+        inert={!isTargetVisible}
+        className={`w-full flex items-end justify-between gap-0.5 overflow-visible ${
+          isTargetVisible ? 'pointer-events-auto' : 'pointer-events-none'
+        }`}
       >
-        {/* Dedicated Open/Close Book Toggle Button (Separate from section tabs!) */}
-        {onToggleCover && (
-          <button
-            type="button"
-            onClick={onToggleCover}
-            aria-label={isBookOpen ? 'Close book' : 'Open book'}
-            className={`btn hand text-xs sm:text-sm font-bold px-2 py-0.5 ink-tab whitespace-nowrap cursor-pointer transition-colors ${
-              !isBookOpen
-                ? 'bg-crimson text-paper border-ink'
-                : 'bg-paper-2 text-ink-soft hover:text-ink'
-            }`}
-            title={isBookOpen ? 'Close to front cover' : 'Open book'}
-          >
-            {isBookOpen ? '📕 Close' : '📖 Open'}
-          </button>
-        )}
-
-        {/* 7 Distinct Section Tabs (Matching PC NAV_TABS) */}
-        {NAV_TABS.map((tab) => {
+        {MOBILE_NAV_TABS.map((tab) => {
           const isSectionActive = isBookOpen && tab.mobilePages.includes(currentPage)
           const subIndex = tab.mobilePages.indexOf(currentPage)
           const subTotal = tab.mobilePages.length
@@ -131,15 +193,16 @@ export default function Nav({
               type="button"
               onClick={() => handleMobileTabClick(tab)}
               aria-current={isSectionActive ? 'page' : undefined}
+              tabIndex={isTargetVisible ? 0 : -1}
               title={
                 isSectionActive && subTotal > 1
                   ? `${tab.label} (Page ${subIndex + 1} of ${subTotal} - tap to cycle)`
                   : tab.label
               }
-              className={`btn hand font-bold text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 ink-tab whitespace-nowrap cursor-pointer transition-colors ${
+              className={`ink-tab-animate btn hand font-bold text-xs px-1 pt-1 pb-4 ink-tab border-b-0 whitespace-nowrap cursor-pointer transition-colors ${
                 isSectionActive
-                  ? 'bg-crimson text-paper border-ink'
-                  : 'bg-paper text-ink-soft hover:text-ink'
+                  ? 'bg-crimson text-paper border-ink translate-y-[-2px] shadow-sm z-10'
+                  : 'bg-paper text-ink-soft hover:text-ink hover:translate-y-[-1px]'
               }`}
             >
               <span>{label}</span>

@@ -19,6 +19,8 @@ export interface InspectablePhoto {
   tapePosition?: CutoutTapePreset
   badge?: string
   stampRotate?: number
+  platformStack?: { layer: string; tools: string }[]
+  hardwareStack?: string
 }
 
 // Realistic paper cutout with slightly rough cut sides/top and ragged torn bottom edge

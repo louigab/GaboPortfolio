@@ -44,9 +44,14 @@ export default function CutoutModal({ photo, onClose }: CutoutModalProps) {
 
   const polyPoints = getCutoutPolygon(photo.src, photo.variant)
   const isPortrait = photo.variant === 'portrait'
-  // Subtle organic tilt (clamped to ±1.2deg so rectangular margins stay tight & clean)
-  const tiltDeg = photo.tilt != null ? Math.max(-1.2, Math.min(1.2, photo.tilt * 0.4)) : 0
-  const hasTextOrLink = Boolean(photo.caption || photo.link)
+  const hasStack = Boolean(photo.platformStack || photo.hardwareStack)
+  // Subtle organic tilt (clamped so rectangular margins stay tight & clean)
+  const tiltDeg = hasStack
+    ? 0
+    : photo.tilt != null
+    ? Math.max(-1.2, Math.min(1.2, photo.tilt * 0.4))
+    : 0
+  const hasTextOrLink = Boolean(photo.caption || photo.link || hasStack)
 
   return (
     <dialog
@@ -85,7 +90,11 @@ export default function CutoutModal({ photo, onClose }: CutoutModalProps) {
 
       {/* Perfectly centered wrapper constrained to viewport with generous breathing room */}
       <div
-        className="cutout-card relative z-10 flex items-center justify-center max-w-[min(90vw,680px)] max-h-[min(82dvh,82vh)] p-2 sm:p-4 pointer-events-auto"
+        className={`cutout-card relative z-10 flex items-center justify-center ${
+          hasStack
+            ? 'max-w-[min(94vw,760px)] max-h-[min(92dvh,92vh)]'
+            : 'max-w-[min(90vw,680px)] max-h-[min(82dvh,82vh)]'
+        } p-2 sm:p-4 pointer-events-auto`}
         onClick={(e) => e.stopPropagation()}
       >
         <figure
@@ -137,14 +146,16 @@ export default function CutoutModal({ photo, onClose }: CutoutModalProps) {
           )}
 
           {/* Photograph + Caption container inside paper scrap */}
-          <div className="relative z-10 flex flex-col items-center max-w-full max-h-full p-1.5 sm:p-2 min-h-0">
+          <div className="relative z-10 flex flex-col items-center max-w-full max-h-[min(82dvh,82vh)] overflow-y-auto p-1.5 sm:p-2 min-h-0">
             {/* Image box: dynamically scales to ensure whole cutout + text fits inside screen */}
-            <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
+            <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden shrink-0">
               <img
                 src={photo.src}
                 alt={photo.title || photo.caption || 'Cutout image'}
                 className={`w-auto max-w-full object-contain block ${
-                  hasTextOrLink
+                  hasStack
+                    ? 'max-h-[22vh] sm:max-h-[26vh] md:max-h-[30vh]'
+                    : hasTextOrLink
                     ? 'max-h-[44vh] sm:max-h-[48vh] md:max-h-[52vh]'
                     : 'max-h-[58vh] sm:max-h-[64vh] md:max-h-[68vh]'
                 }`}
@@ -153,9 +164,64 @@ export default function CutoutModal({ photo, onClose }: CutoutModalProps) {
 
             {/* Handwritten Caption directly below photo */}
             {photo.caption && (
-              <figcaption className="hand text-ink text-center text-sm sm:text-base md:text-lg leading-snug pt-2 sm:pt-2.5 pb-0.5 px-3 font-bold select-text max-w-xl mx-auto break-words shrink-0">
+              <figcaption className="hand text-ink text-center text-sm sm:text-base leading-snug pt-2 sm:pt-2.5 pb-0.5 px-3 font-bold select-text max-w-xl mx-auto break-words shrink-0">
                 {photo.caption}
               </figcaption>
+            )}
+
+            {/* Detailed Stack Breakdown (if provided, e.g. for Capstone WattWise) */}
+            {hasStack && (
+              <div className="w-full max-w-2xl mt-2 px-1 text-left select-text shrink-0">
+                <div className="bg-[#fffdfa]/95 border border-ink/30 rounded-xs p-2.5 sm:p-3 shadow-xs -rotate-0.5">
+                  <div className="flex items-center justify-between pb-1 border-b border-ink/20 mb-2">
+                    <span className="hand text-xs sm:text-sm font-bold text-crimson tracking-wide">
+                      ★ Architectural Tech Stack
+                    </span>
+                    <span className="hand text-[11px] font-bold text-ink-soft">
+                      Platform &amp; Hardware
+                    </span>
+                  </div>
+
+                  {photo.platformStack && photo.platformStack.length > 0 && (
+                    <div className="mb-2">
+                      <div className="hand text-xs font-bold text-ink underline decoration-crimson/50 decoration-1 mb-1">
+                        Platform / App Side:
+                      </div>
+                      <div className="space-y-1 pl-1">
+                        {photo.platformStack.map((item) => (
+                          <div
+                            key={item.layer}
+                            className="hand text-xs leading-snug flex items-baseline gap-1.5"
+                          >
+                            <span className="font-bold text-crimson shrink-0 min-w-[78px]">
+                              {item.layer}:
+                            </span>
+                            <span className="text-ink font-semibold">
+                              {item.tools}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {photo.hardwareStack && (
+                    <div className="pt-1.5 border-t border-ink/15">
+                      <div className="hand text-xs font-bold text-ink underline decoration-crimson/50 decoration-1 mb-1">
+                        Hardware Side:
+                      </div>
+                      <div className="hand text-xs leading-snug flex items-baseline gap-1.5 pl-1">
+                        <span className="font-bold text-crimson shrink-0 min-w-[78px]">
+                          Embedded:
+                        </span>
+                        <span className="text-ink font-semibold">
+                          {photo.hardwareStack}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
             {/* Optional Project Site Sticker */}

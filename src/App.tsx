@@ -21,10 +21,10 @@ import Certificates from './components/Certificates'
 import Contact, { type SentNoteSnapshot } from './components/Contact'
 import Footer from './components/Footer'
 import CutoutModal from './components/CutoutModal'
-import { TECH_GROUPS, type TechItem } from './data/portfolioData'
 import type { InspectablePhoto } from './components/MagazineCutout'
 import BookCover3D from './book/BookCover3D'
 import BookLeafTurn from './book/BookLeafTurn'
+import BookRiffle, { type BookRiffleLeaf } from './book/BookRiffle'
 import NotebookSheet from './book/NotebookSheet'
 import PaperAirplaneFlight, {
   SpineReplacementTapes,
@@ -55,6 +55,13 @@ const MOBILE_BOOK_H = PAGE_H + COVER_PAD * 2 // 642
 // Page index 9 is a blank spread-filler on desktop; in 1-page mode we skip it
 const BLANK_PAGE_INDEX = 9
 
+interface ActiveRiffleState {
+  direction: TurnDirection
+  targetPage: number
+  leaves: BookRiffleLeaf[]
+  underSheet: React.ReactNode | null
+}
+
 const getAdjacentSinglePage = (page: number, dir: TurnDirection): number => {
   if (dir === 'next') {
     const next = page + 1
@@ -72,11 +79,33 @@ export default function App() {
     return Number.isFinite(p) && p >= 0 && p < TOTAL_PAGES ? p : 0
   })
 
-  // Closed book physical initial state (opens immediately if reduced-motion is preferred)
+  // Closed book physical initial state (starts closed; opens immediately only if URL page parameter or ?open=1 is set)
   const [isBookOpen, setIsBookOpen] = useState(() => {
     if (typeof window === 'undefined') return false
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const search = new URLSearchParams(window.location.search)
+    if (search.has('open') || search.get('open') === 'true' || search.get('open') === '1') return true
+    const p = Number(search.get('page'))
+    return Number.isFinite(p) && p > 0
   })
+
+  // Tracks whether the 3D cover has fully settled into its open position (waits for full swing completion)
+  const [isBookFullyOpen, setIsBookFullyOpen] = useState(() => isBookOpen)
+  const [prevIsBookOpen, setPrevIsBookOpen] = useState(isBookOpen)
+  if (prevIsBookOpen !== isBookOpen) {
+    setPrevIsBookOpen(isBookOpen)
+    if (!isBookOpen) {
+      setIsBookFullyOpen(false)
+    }
+  }
+
+  // Multi-page cascading riffle state & instant destination tab selection
+  const [activeRiffle, setActiveRiffle] = useState<ActiveRiffleState | null>(null)
+  const [navActivePage, setNavActivePage] = useState<number | null>(null)
+  const goToPageRef = useRef<(targetPage: number) => void>(() => {})
+
+  const handleCoverSettled = useCallback((settledOpen: boolean) => {
+    setIsBookFullyOpen(settledOpen)
+  }, [])
 
   // Track viewport size & compute uniform scale factor
   const [viewport, setViewport] = useState(() => ({
@@ -101,39 +130,6 @@ export default function App() {
 
   const hasOpenedInitially = useRef(isBookOpen)
 
-  // Automatic opening animation on initial load only (waits briefly for cover fonts, settles closed, then unlatches & opens)
-  useEffect(() => {
-    if (hasOpenedInitially.current) return
-
-    let cancelled = false
-    let settleTimer: ReturnType<typeof setTimeout> | null = null
-
-    const scheduleOpen = () => {
-      if (cancelled || hasOpenedInitially.current) return
-      settleTimer = setTimeout(() => {
-        if (!cancelled && !hasOpenedInitially.current) {
-          hasOpenedInitially.current = true
-          setIsBookOpen(true)
-        }
-      }, 950)
-    }
-
-    const fontWait =
-      typeof document !== 'undefined' && document.fonts?.ready
-        ? Promise.race([
-            document.fonts.ready,
-            new Promise((resolve) => setTimeout(resolve, 650)),
-          ])
-        : Promise.resolve()
-
-    fontWait.then(scheduleOpen)
-
-    return () => {
-      cancelled = true
-      if (settleTimer !== null) clearTimeout(settleTimer)
-    }
-  }, [])
-
   // 2-page spread for PC and tablet in landscape; 1-page single sheet for phones and tablet in portrait
   const isDesktop =
     viewport.w > viewport.h
@@ -153,9 +149,6 @@ export default function App() {
   }
 
   const [flipTrigger, setFlipTrigger] = useState(0)
-  const [selectedTech, setSelectedTech] = useState<TechItem>(
-    TECH_GROUPS[0].items[0]
-  )
   const [certPageIdx, setCertPageIdx] = useState(0)
   const [inspectedPhoto, setInspectedPhoto] =
     useState<InspectablePhoto | null>(null)
@@ -247,29 +240,101 @@ export default function App() {
   }, [])
 
   useLayoutEffect(() => {
-    syncCoverPhysics(coverProgressRef.current)
+    if (isDesktop) {
+      syncCoverPhysics(coverProgressRef.current)
+    } else if (desktopBookStageRef.current) {
+      desktopBookStageRef.current.style.transform = ''
+    }
   }, [isDesktop, syncCoverPhysics])
 
   const onCommitTurn = useCallback(
     (dir: TurnDirection, targetPage?: number) => {
+      let committedPage = targetPage
       setCurrentPage((prev) => {
         if (targetPage !== undefined) {
           if (!isDesktop && targetPage === BLANK_PAGE_INDEX) {
-            return dir === 'next' ? 10 : 8
+            committedPage = dir === 'next' ? 10 : 8
+            return committedPage
           }
-          return clamp(targetPage, 0, TOTAL_PAGES - 1)
+          committedPage = clamp(targetPage, 0, TOTAL_PAGES - 1)
+          return committedPage
         }
         if (isDesktop) {
           const base = Math.floor(prev / 2) * 2
-          return dir === 'next'
-            ? Math.min(TOTAL_PAGES - 1, base + 2)
-            : Math.max(0, base - 2)
+          committedPage =
+            dir === 'next'
+              ? Math.min(TOTAL_PAGES - 1, base + 2)
+              : Math.max(0, base - 2)
+          return committedPage
         }
-        return getAdjacentSinglePage(prev, dir)
+        committedPage = getAdjacentSinglePage(prev, dir)
+        return committedPage
       })
       setFlipTrigger((n) => n + 1)
+      setNavActivePage(null)
     },
     [isDesktop]
+  )
+
+  const handleRiffleComplete = useCallback(() => {
+    setActiveRiffle((curr) => {
+      if (curr) {
+        setCurrentPage(curr.targetPage)
+      }
+      return null
+    })
+    setNavActivePage(null)
+    setFlipTrigger((n) => n + 1)
+  }, [])
+
+  const renderPageContent = useCallback(
+    (pageIdx: number) => {
+      switch (pageIdx) {
+        case 0:
+          return (
+            <Hero
+              onGoToPage={(p) => goToPageRef.current(p)}
+              flipTrigger={flipTrigger}
+              isDesktop={isDesktop}
+            />
+          )
+        case 1:
+          return (
+            <About
+              onGoToPage={(p) => goToPageRef.current(p)}
+              onInspectPhoto={setInspectedPhoto}
+            />
+          )
+        case 2:
+          return <TechStackPageLeft />
+        case 3:
+          return <TechStackPageRight />
+        case 4:
+          return <AchievementsPageLeft onInspectPhoto={setInspectedPhoto} />
+        case 5:
+          return <AchievementsPageRight onInspectPhoto={setInspectedPhoto} />
+        case 6:
+          return <ProjectsPageLeft onInspectPhoto={setInspectedPhoto} />
+        case 7:
+          return <ProjectsPageRight onInspectPhoto={setInspectedPhoto} />
+        case 8:
+          return <ProjectsPageMoreLeft onInspectPhoto={setInspectedPhoto} />
+        case 9:
+          return <ProjectsPageMoreRight />
+        case 10:
+          return (
+            <Certificates
+              onInspectPhoto={setInspectedPhoto}
+              pageIdx={certPageIdx}
+              onChangePageIdx={setCertPageIdx}
+            />
+          )
+        case 11:
+        default:
+          return <Contact onNoteSent={handleNoteSent} />
+      }
+    },
+    [certPageIdx, flipTrigger, handleNoteSent, isDesktop]
   )
 
   const pageTurn = usePageTurn({
@@ -281,6 +346,7 @@ export default function App() {
     spineW: isDesktop ? SPINE_W : 0,
     isDesktop,
   })
+
 
   const triggerBoundaryNudge = useCallback((dir: TurnDirection) => {
     if (
@@ -299,7 +365,7 @@ export default function App() {
 
   const goToPage = useCallback(
     (targetPage: number) => {
-      if (activeAirplaneNote) return
+      if (activeAirplaneNote || activeRiffle) return
       let clamped = clamp(targetPage, 0, TOTAL_PAGES - 1)
       if (!isDesktop && clamped === BLANK_PAGE_INDEX) {
         clamped = 10
@@ -314,21 +380,261 @@ export default function App() {
         return
       }
 
-      if (isDesktop && normalized === currentNormalized) {
-        setCurrentPage(clamped)
+      if (normalized === currentNormalized) {
+        if (currentPage !== clamped) {
+          setCurrentPage(clamped)
+        }
+        setNavActivePage(null)
         return
       }
 
-      if (normalized === currentNormalized) return
-      const dir: TurnDirection =
-        normalized > currentNormalized ? 'next' : 'prev'
-      pageTurn.triggerFlip(dir, { targetPage: clamped, corner: 'bottom' })
+      // Immediately activate the target tab in the navigation bar!
+      setNavActivePage(clamped)
+
+      if (
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ) {
+        setCurrentPage(clamped)
+        setNavActivePage(null)
+        return
+      }
+
+      if (isDesktop) {
+        const fromSpread = Math.floor(leftPageIndex / 2)
+        const toSpread = Math.floor(clamped / 2)
+        const spreadDiff = toSpread - fromSpread
+        const dir: TurnDirection = spreadDiff > 0 ? 'next' : 'prev'
+        const dist = Math.abs(spreadDiff)
+
+        if (dist === 1) {
+          // Adjacent spread: smooth single-page turn
+          pageTurn.triggerFlip(dir, {
+            targetPage: clamped,
+            corner: 'bottom',
+            duration: 620,
+          })
+          return
+        }
+
+        // Non-adjacent spreads: multi-leaf cascading riffle through all intermediate pages!
+        const leaves: BookRiffleLeaf[] = []
+        if (dir === 'next') {
+          for (let i = 0; i < dist; i++) {
+            const frontIdx = (fromSpread + i) * 2 + 1
+            const backIdx = (fromSpread + i + 1) * 2
+            leaves.push({
+              frontSheet: (
+                <NotebookSheet
+                  side="right"
+                  pageIndex={frontIdx}
+                  totalPages={TOTAL_PAGES}
+                  interactive={false}
+                >
+                  {renderPageContent(frontIdx)}
+                </NotebookSheet>
+              ),
+              backSheet: (
+                <NotebookSheet
+                  side="left"
+                  pageIndex={backIdx}
+                  totalPages={TOTAL_PAGES}
+                  interactive={false}
+                >
+                  {renderPageContent(backIdx)}
+                </NotebookSheet>
+              ),
+            })
+          }
+          const destRight = Math.min(TOTAL_PAGES - 1, toSpread * 2 + 1)
+          const underSheet = (
+            <NotebookSheet
+              side="right"
+              pageIndex={destRight}
+              totalPages={TOTAL_PAGES}
+              interactive={false}
+            >
+              {renderPageContent(destRight)}
+            </NotebookSheet>
+          )
+          setActiveRiffle({
+            direction: dir,
+            targetPage: clamped,
+            leaves,
+            underSheet,
+          })
+        } else {
+          for (let i = 0; i < dist; i++) {
+            const frontIdx = (fromSpread - i) * 2
+            const backIdx = (fromSpread - i - 1) * 2 + 1
+            leaves.push({
+              frontSheet: (
+                <NotebookSheet
+                  side="left"
+                  pageIndex={frontIdx}
+                  totalPages={TOTAL_PAGES}
+                  interactive={false}
+                >
+                  {renderPageContent(frontIdx)}
+                </NotebookSheet>
+              ),
+              backSheet: (
+                <NotebookSheet
+                  side="right"
+                  pageIndex={backIdx}
+                  totalPages={TOTAL_PAGES}
+                  interactive={false}
+                >
+                  {renderPageContent(backIdx)}
+                </NotebookSheet>
+              ),
+            })
+          }
+          const destLeft = toSpread * 2
+          const underSheet = (
+            <NotebookSheet
+              side="left"
+              pageIndex={destLeft}
+              totalPages={TOTAL_PAGES}
+              interactive={false}
+            >
+              {renderPageContent(destLeft)}
+            </NotebookSheet>
+          )
+          setActiveRiffle({
+            direction: dir,
+            targetPage: clamped,
+            leaves,
+            underSheet,
+          })
+        }
+      } else {
+        // Mobile 1-page mode
+        const validPages = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11]
+        const fromIdx = validPages.indexOf(currentPage)
+        const toIdx = validPages.indexOf(clamped)
+        const pageDiff =
+          fromIdx !== -1 && toIdx !== -1 ? toIdx - fromIdx : clamped - currentPage
+        const dir: TurnDirection = pageDiff > 0 ? 'next' : 'prev'
+        const dist = Math.abs(pageDiff)
+
+        if (dist <= 1) {
+          pageTurn.triggerFlip(dir, {
+            targetPage: clamped,
+            corner: 'bottom',
+            duration: 620,
+          })
+          return
+        }
+
+        const leaves: BookRiffleLeaf[] = []
+        if (dir === 'next') {
+          for (let i = 0; i < dist; i++) {
+            const frontPage = validPages[fromIdx + i]
+            const backPage = validPages[fromIdx + i + 1]
+            leaves.push({
+              frontSheet: (
+                <NotebookSheet
+                  side="mobile"
+                  pageIndex={frontPage}
+                  totalPages={TOTAL_PAGES}
+                  interactive={false}
+                >
+                  {renderPageContent(frontPage)}
+                </NotebookSheet>
+              ),
+              backSheet: (
+                <NotebookSheet
+                  side="mobile"
+                  pageIndex={backPage}
+                  totalPages={TOTAL_PAGES}
+                  interactive={false}
+                >
+                  {renderPageContent(backPage)}
+                </NotebookSheet>
+              ),
+            })
+          }
+          const underSheet = (
+            <NotebookSheet
+              side="mobile"
+              pageIndex={clamped}
+              totalPages={TOTAL_PAGES}
+              interactive={false}
+            >
+              {renderPageContent(clamped)}
+            </NotebookSheet>
+          )
+          setActiveRiffle({
+            direction: dir,
+            targetPage: clamped,
+            leaves,
+            underSheet,
+          })
+        } else {
+          for (let i = 0; i < dist; i++) {
+            const frontPage = validPages[fromIdx - i]
+            const backPage = validPages[fromIdx - i - 1]
+            leaves.push({
+              frontSheet: (
+                <NotebookSheet
+                  side="mobile"
+                  pageIndex={frontPage}
+                  totalPages={TOTAL_PAGES}
+                  interactive={false}
+                >
+                  {renderPageContent(frontPage)}
+                </NotebookSheet>
+              ),
+              backSheet: (
+                <NotebookSheet
+                  side="mobile"
+                  pageIndex={backPage}
+                  totalPages={TOTAL_PAGES}
+                  interactive={false}
+                >
+                  {renderPageContent(backPage)}
+                </NotebookSheet>
+              ),
+            })
+          }
+          const underSheet = (
+            <NotebookSheet
+              side="mobile"
+              pageIndex={clamped}
+              totalPages={TOTAL_PAGES}
+              interactive={false}
+            >
+              {renderPageContent(clamped)}
+            </NotebookSheet>
+          )
+          setActiveRiffle({
+            direction: dir,
+            targetPage: clamped,
+            leaves,
+            underSheet,
+          })
+        }
+      }
     },
-    [activeAirplaneNote, currentPage, isBookOpen, isDesktop, leftPageIndex, pageTurn]
+    [
+      activeAirplaneNote,
+      activeRiffle,
+      currentPage,
+      isBookOpen,
+      isDesktop,
+      leftPageIndex,
+      pageTurn,
+      renderPageContent,
+    ]
   )
 
+  useLayoutEffect(() => {
+    goToPageRef.current = goToPage
+  })
+
   const handleNext = useCallback(() => {
-    if (activeAirplaneNote) return
+    if (activeAirplaneNote || activeRiffle) return
     if (!isBookOpen) {
       hasOpenedInitially.current = true
       setIsBookOpen(true)
@@ -339,10 +645,10 @@ export default function App() {
       return
     }
     pageTurn.triggerFlip('next', { corner: 'bottom' })
-  }, [activeAirplaneNote, canNext, isBookOpen, pageTurn, triggerBoundaryNudge])
+  }, [activeAirplaneNote, activeRiffle, canNext, isBookOpen, pageTurn, triggerBoundaryNudge])
 
   const handlePrev = useCallback(() => {
-    if (activeAirplaneNote) return
+    if (activeAirplaneNote || activeRiffle) return
     if (!isBookOpen) {
       hasOpenedInitially.current = true
       setIsBookOpen(true)
@@ -353,7 +659,7 @@ export default function App() {
       return
     }
     pageTurn.triggerFlip('prev', { corner: 'bottom' })
-  }, [activeAirplaneNote, canPrev, isBookOpen, pageTurn, triggerBoundaryNudge])
+  }, [activeAirplaneNote, activeRiffle, canPrev, isBookOpen, pageTurn, triggerBoundaryNudge])
 
   const openBook = useCallback(() => {
     hasOpenedInitially.current = true
@@ -362,6 +668,8 @@ export default function App() {
 
   const toggleCover = useCallback(() => {
     if (activeAirplaneNote) return
+    setActiveRiffle(null)
+    setNavActivePage(null)
     hasOpenedInitially.current = true
     setIsBookOpen((prev) => !prev)
   }, [activeAirplaneNote])
@@ -400,7 +708,7 @@ export default function App() {
   const makeEdgeDragProps = (dir: TurnDirection, hoverCorner?: Corner) => ({
     onPointerEnter: hoverCorner
       ? () => {
-          if (isBookOpen && !activeAirplaneNote) {
+          if (isBookOpen && !activeAirplaneNote && !activeRiffle) {
             pageTurn.onCornerHoverEnter(dir, hoverCorner)
           }
         }
@@ -411,7 +719,8 @@ export default function App() {
         }
       : undefined,
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
-      if (!isBookOpen || activeAirplaneNote) return
+      if (!isBookOpen || activeAirplaneNote || activeRiffle) return
+      e.stopPropagation()
       const rect = getActiveSpreadRect()
       if (rect) pageTurn.onPointerDownEdge(dir, e, rect)
     },
@@ -429,61 +738,6 @@ export default function App() {
       pageTurn.onLostCaptureEdge()
     },
   })
-
-  const renderPageContent = (pageIdx: number) => {
-    switch (pageIdx) {
-      case 0:
-        return (
-          <Hero
-            onGoToPage={goToPage}
-            onInspectPhoto={setInspectedPhoto}
-            flipTrigger={flipTrigger}
-          />
-        )
-      case 1:
-        return (
-          <About onGoToPage={goToPage} onInspectPhoto={setInspectedPhoto} />
-        )
-      case 2:
-        return (
-          <TechStackPageLeft
-            selectedTech={selectedTech}
-            onSelectTech={setSelectedTech}
-            isDesktop={isDesktop}
-          />
-        )
-      case 3:
-        return (
-          <TechStackPageRight
-            selectedTech={selectedTech}
-            onSelectTech={setSelectedTech}
-          />
-        )
-      case 4:
-        return <AchievementsPageLeft onInspectPhoto={setInspectedPhoto} />
-      case 5:
-        return <AchievementsPageRight onInspectPhoto={setInspectedPhoto} />
-      case 6:
-        return <ProjectsPageLeft onInspectPhoto={setInspectedPhoto} />
-      case 7:
-        return <ProjectsPageRight onInspectPhoto={setInspectedPhoto} />
-      case 8:
-        return <ProjectsPageMoreLeft onInspectPhoto={setInspectedPhoto} />
-      case 9:
-        return <ProjectsPageMoreRight />
-      case 10:
-        return (
-          <Certificates
-            onInspectPhoto={setInspectedPhoto}
-            pageIdx={certPageIdx}
-            onChangePageIdx={setCertPageIdx}
-          />
-        )
-      case 11:
-      default:
-        return <Contact onNoteSent={handleNoteSent} />
-    }
-  }
 
   // Compute physical front / reverse / underlying sheets whenever a curl is active
   const activeTurn = pageTurn.activeTurn
@@ -640,47 +894,154 @@ export default function App() {
     }
   }
 
-  // Mobile horizontal swipe gesture recognition
-  const mobileTouchStartRef = useRef<{
+  const isFormTarget = (target: EventTarget | null): boolean => {
+    if (!target || !(target instanceof HTMLElement)) return false
+    const tag = target.tagName.toLowerCase()
+    return (
+      tag === 'input' ||
+      tag === 'textarea' ||
+      tag === 'select' ||
+      target.isContentEditable ||
+      !!target.closest('input, textarea, select, [contenteditable="true"]')
+    )
+  }
+
+  // Mobile horizontal swipe gesture recognition (touch & pointer safe)
+  const mobileSwipeStartRef = useRef<{
     x: number
     y: number
     time: number
+    isForm: boolean
   } | null>(null)
 
   const handleMobileTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      mobileTouchStartRef.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-        time: Date.now(),
-      }
+    if (e.touches.length !== 1 || !isBookOpen || activeAirplaneNote || inspectedPhoto) {
+      mobileSwipeStartRef.current = null
+      return
+    }
+    const t = e.touches[0]
+    mobileSwipeStartRef.current = {
+      x: t.clientX,
+      y: t.clientY,
+      time: performance.now(),
+      isForm: isFormTarget(e.target),
     }
   }
 
   const handleMobileTouchEnd = (e: React.TouchEvent) => {
+    const start = mobileSwipeStartRef.current
+    mobileSwipeStartRef.current = null
+
     if (
-      !mobileTouchStartRef.current ||
+      !start ||
+      start.isForm ||
       pageTurn.isDragging ||
       !isBookOpen ||
-      activeAirplaneNote
+      activeAirplaneNote ||
+      inspectedPhoto
     ) {
-      mobileTouchStartRef.current = null
       return
     }
-    const touch = e.changedTouches[0]
-    const dx = touch.clientX - mobileTouchStartRef.current.x
-    const dy = touch.clientY - mobileTouchStartRef.current.y
-    const dt = Date.now() - mobileTouchStartRef.current.time
-    mobileTouchStartRef.current = null
 
-    if (Math.abs(dx) > 42 && Math.abs(dx) > Math.abs(dy) * 1.4 && dt < 600) {
-      if (dx < 0 && canNext) {
-        handleNext()
-      } else if (dx > 0 && canPrev) {
-        handlePrev()
+    if (e.changedTouches.length === 0) return
+    const touch = e.changedTouches[0]
+    const dx = touch.clientX - start.x
+    const dy = touch.clientY - start.y
+    const dt = performance.now() - start.time
+
+    const absX = Math.abs(dx)
+    const absY = Math.abs(dy)
+    const isHorizontal = absX > absY * 1.1
+
+    const isFlick = absX >= 28 && dt < 450 && absX / dt >= 0.16
+    const isSwipe = absX >= 40 && dt < 750
+    const isDeliberate = absX >= 68 && dt < 1000
+
+    if (isHorizontal && (isFlick || isSwipe || isDeliberate)) {
+      if (dx < 0) {
+        if (canNext) {
+          handleNext()
+        } else {
+          triggerBoundaryNudge('next')
+        }
+      } else {
+        if (canPrev) {
+          handlePrev()
+        } else {
+          triggerBoundaryNudge('prev')
+        }
       }
     }
   }
+
+  const handleMobileTouchCancel = () => {
+    mobileSwipeStartRef.current = null
+  }
+
+  const handleMobilePointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return
+    if (!isBookOpen || activeAirplaneNote || inspectedPhoto) return
+    mobileSwipeStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      time: performance.now(),
+      isForm: isFormTarget(e.target),
+    }
+  }
+
+  const handleMobilePointerUp = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return
+    const start = mobileSwipeStartRef.current
+    mobileSwipeStartRef.current = null
+
+    if (
+      !start ||
+      start.isForm ||
+      pageTurn.isDragging ||
+      !isBookOpen ||
+      activeAirplaneNote ||
+      inspectedPhoto
+    ) {
+      return
+    }
+
+    const dx = e.clientX - start.x
+    const dy = e.clientY - start.y
+    const dt = performance.now() - start.time
+
+    const absX = Math.abs(dx)
+    const absY = Math.abs(dy)
+    const isHorizontal = absX > absY * 1.1
+
+    const isFlick = absX >= 28 && dt < 450 && absX / dt >= 0.16
+    const isSwipe = absX >= 40 && dt < 750
+    const isDeliberate = absX >= 68 && dt < 1000
+
+    if (isHorizontal && (isFlick || isSwipe || isDeliberate)) {
+      if (dx < 0) {
+        if (canNext) {
+          handleNext()
+        } else {
+          triggerBoundaryNudge('next')
+        }
+      } else {
+        if (canPrev) {
+          handlePrev()
+        } else {
+          triggerBoundaryNudge('prev')
+        }
+      }
+    }
+  }
+
+  // Dynamic realistic paper stack depth (0 = empty, 1 = maximum pages)
+  const effectivePage = navActivePage ?? currentPage
+  const currentSpreadIdx = Math.floor(effectivePage / 2)
+  const leftPaperStackRatio = isBookOpen ? currentSpreadIdx / 5 : 0
+  const rightPaperStackRatio = isBookOpen ? (5 - currentSpreadIdx) / 5 : 1
+  const mobilePaperStackRatio = isBookOpen
+    ? (TOTAL_PAGES - 1 - effectivePage) / (TOTAL_PAGES - 1)
+    : 1
 
   return (
     <div
@@ -706,26 +1067,24 @@ export default function App() {
           transform: `scale(${stageScale})`,
           transformOrigin: 'center center',
         }}
-        className="flex flex-col justify-between shrink-0 relative"
+        className="flex flex-col items-center justify-center shrink-0 relative"
       >
-        {/* Top Notebook Index Tabs & Mascot Logo */}
+        {/* Top Notebook Index Bookmark Tabs */}
         <Nav
-          currentPage={currentPage}
+          currentPage={navActivePage ?? currentPage}
           isDesktop={isDesktop}
           onGoToPage={goToPage}
           flipTrigger={flipTrigger}
           isBookOpen={isBookOpen}
-          onToggleCover={toggleCover}
+          isBookFullyOpen={isBookFullyOpen}
         />
 
         {/* Main 3D Perspective Book Stage */}
         <main
           id="main"
           ref={bookRef}
-          className={`flex-1 min-h-0 w-full ${
-            isDesktop ? 'px-6 py-1 -top-6' : 'px-0 pt-1 pb-3 top-0'
-          } flex items-center justify-center relative perspective-book transform-style-3d ${
-            activeAirplaneNote ? 'z-30' : ''
+          className={`w-full flex items-center justify-center relative perspective-book transform-style-3d ${
+            activeAirplaneNote ? 'z-30' : 'z-10'
           }`}
         >
           {isDesktop ? (
@@ -733,6 +1092,7 @@ export default function App() {
             /* DESKTOP: 3D REALISTIC PHYSICAL BOOK SPREAD (976px x 642px)     */
             /* ============================================================== */
             <div
+              key="desktop-stage"
               ref={desktopBookStageRef}
               className="relative w-[976px] h-[642px] shrink-0 transform-style-3d"
               style={{
@@ -766,28 +1126,61 @@ export default function App() {
               />
 
               {/* Flat 2D Open-Book Plane (prevents 3D preserve-3d plane-splitting shifts between resting & turning states) */}
-              <div className="absolute inset-0">
+              <div
+                className={`absolute inset-0 ${!isBookOpen ? 'pointer-events-none' : ''}`}
+                style={{ zIndex: 20 }}
+              >
                 {/* LEFT HARDCOVER BOARD (Visible once cover settles at -180deg) */}
                 <div
                   ref={leftHalfRef}
                   className="absolute left-0 top-0 w-[488px] h-full bg-ink rounded-l-xl shadow-[0_18px_40px_rgba(0,0,0,0.38),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                  style={{ zIndex: 10 }}
                 >
                   {/* Resting Left Book Page */}
                   <section
                     aria-label={`Book Page ${leftPageIndex + 1}`}
                     className="absolute top-[14px] left-[14px] w-[474px] h-[614px] z-10"
                   >
+                    {/* Underlying deckled paper leaves (physical depth for turned pages) */}
                     <div
-                      className="w-full h-full"
+                      className="pointer-events-none absolute inset-0 z-0 transition-all duration-300 ease-out"
                       style={{
-                        opacity: activeTurn?.direction === 'prev' ? 0 : 1,
+                        opacity: isBookOpen && leftPaperStackRatio > 0.35 ? 1 : 0,
+                        transform: `translate3d(${-leftPaperStackRatio * 3.5}px, ${leftPaperStackRatio * 1.5}px, 0)`,
+                        filter: 'drop-shadow(-2px 3px 4px rgba(18, 14, 10, 0.28))',
+                      }}
+                      aria-hidden="true"
+                    >
+                      <div className="notebook-page notebook-left w-full h-full bg-[#dfd4ba]" />
+                    </div>
+
+                    <div
+                      className="pointer-events-none absolute inset-0 z-0 transition-all duration-300 ease-out"
+                      style={{
+                        opacity: isBookOpen && leftPaperStackRatio > 0.05 ? 1 : 0,
+                        transform: `translate3d(${-leftPaperStackRatio * 1.8}px, ${leftPaperStackRatio * 0.8}px, 0)`,
+                        filter: 'drop-shadow(-1px 2px 2.5px rgba(18, 14, 10, 0.18))',
+                      }}
+                      aria-hidden="true"
+                    >
+                      <div className="notebook-page notebook-left w-full h-full bg-[#ebe1cc]" />
+                    </div>
+
+                    <div
+                      className="relative w-full h-full z-10"
+                      style={{
+                        opacity:
+                          activeTurn?.direction === 'prev' ||
+                          activeRiffle?.direction === 'prev'
+                            ? 0
+                            : 1,
                       }}
                     >
                       <NotebookSheet
                         side="left"
                         pageIndex={leftPageIndex}
                         totalPages={TOTAL_PAGES}
-                        interactive={isBookOpen && !activeTurn}
+                        interactive={isBookOpen && !activeTurn && !activeRiffle}
                         onPrev={handlePrev}
                       >
                         {renderPageContent(leftPageIndex)}
@@ -822,12 +1215,47 @@ export default function App() {
                   className={`absolute left-[488px] top-0 w-[488px] h-full bg-ink rounded-r-xl rounded-l-[3px] shadow-[0_18px_42px_rgba(0,0,0,0.42),0_6px_14px_rgba(0,0,0,0.26),inset_0_0_0_1px_rgba(255,255,255,0.06)] ${
                     !isBookOpen ? 'pointer-events-none' : ''
                   }`}
+                  style={{ zIndex: 10 }}
                 >
                   {/* Resting Right Book Page (Page 2 lies physically beneath the front cover!) */}
                   <section
                     aria-label={`Book Page ${rightPageIndex + 1}`}
                     className="absolute top-[14px] left-0 w-[474px] h-[614px] z-10"
                   >
+                    {/* Underlying deckled paper leaves (physical depth for remaining pages) */}
+                    <div
+                      className="pointer-events-none absolute inset-0 z-0 transition-all duration-300 ease-out"
+                      style={{
+                        opacity:
+                          isBookOpen &&
+                          rightPageIndex < TOTAL_PAGES - 1 &&
+                          rightPaperStackRatio > 0.35
+                            ? 1
+                            : 0,
+                        transform: `translate3d(${rightPaperStackRatio * 3.5}px, ${rightPaperStackRatio * 1.5}px, 0)`,
+                        filter: 'drop-shadow(2px 3px 4px rgba(18, 14, 10, 0.28))',
+                      }}
+                      aria-hidden="true"
+                    >
+                      <div className="notebook-page notebook-right w-full h-full bg-[#dfd4ba]" />
+                    </div>
+
+                    <div
+                      className="pointer-events-none absolute inset-0 z-0 transition-all duration-300 ease-out"
+                      style={{
+                        opacity:
+                          isBookOpen &&
+                          rightPageIndex < TOTAL_PAGES - 1 &&
+                          rightPaperStackRatio > 0.05
+                            ? 1
+                            : 0,
+                        transform: `translate3d(${rightPaperStackRatio * 1.8}px, ${rightPaperStackRatio * 0.8}px, 0)`,
+                        filter: 'drop-shadow(1px 2px 2.5px rgba(18, 14, 10, 0.18))',
+                      }}
+                      aria-hidden="true"
+                    >
+                      <div className="notebook-page notebook-right w-full h-full bg-[#ebe1cc]" />
+                    </div>
                     {/* Matte-black inside back hardcover liner exposed when Page 12 is ripped out */}
                     {rightPageIndex === TOTAL_PAGES - 1 && (
                       <div
@@ -841,7 +1269,11 @@ export default function App() {
                     <div
                       className="relative w-full h-full z-10"
                       style={{
-                        opacity: activeTurn?.direction === 'next' ? 0 : 1,
+                        opacity:
+                          activeTurn?.direction === 'next' ||
+                          activeRiffle?.direction === 'next'
+                            ? 0
+                            : 1,
                         visibility:
                           activeAirplaneNote && rightPageIndex === TOTAL_PAGES - 1
                             ? 'hidden'
@@ -852,7 +1284,12 @@ export default function App() {
                         side="right"
                         pageIndex={rightPageIndex}
                         totalPages={TOTAL_PAGES}
-                        interactive={isBookOpen && !activeTurn && !activeAirplaneNote}
+                        interactive={
+                          isBookOpen &&
+                          !activeTurn &&
+                          !activeAirplaneNote &&
+                          !activeRiffle
+                        }
                         onNext={handleNext}
                       >
                         {renderPageContent(rightPageIndex)}
@@ -904,7 +1341,8 @@ export default function App() {
                 {/* BOUND HARDCOVER BOOK SEWN CENTER SPINE SEAM & HEADBANDS */}
                 <div
                   ref={spineBindingRef}
-                  className="pointer-events-none absolute left-[488px] -translate-x-1/2 top-[6px] bottom-[6px] w-[12px] z-30 select-none"
+                  className="pointer-events-none absolute left-[488px] -translate-x-1/2 top-[6px] bottom-[6px] w-[12px] z-25 select-none"
+                  style={{ zIndex: 25 }}
                   aria-hidden="true"
                 >
                   {/* Top woven crimson & black bookbinder headband */}
@@ -927,31 +1365,51 @@ export default function App() {
                   />
                 </div>
 
-                {/* REAL-TIME CONICAL / CYLINDRICAL PAPER CURL ENGINE */}
-                {activeTurn && turnSheets && (
-                  <BookLeafTurn
-                    direction={activeTurn.direction}
+                {/* MULTI-LEAF CASCADING RIFFLE OR REAL-TIME CURL ENGINE */}
+                {activeRiffle ? (
+                  <BookRiffle
+                    direction={activeRiffle.direction}
                     isDesktop={true}
                     pageW={PAGE_W}
                     pageH={PAGE_H}
                     spineW={SPINE_W}
                     offsetLeft={COVER_PAD}
                     offsetTop={COVER_PAD}
-                    frontSheet={turnSheets.frontSheet}
-                    backSheet={turnSheets.backSheet}
-                    underSheet={turnSheets.backSheet ? turnSheets.underSheet : null}
-                    registerFrameListener={pageTurn.registerFrameListener}
-                    getCurrentCurl={pageTurn.getCurrentCurl}
+                    leaves={activeRiffle.leaves}
+                    underSheet={activeRiffle.underSheet}
+                    onComplete={handleRiffleComplete}
                   />
-                )}
+                ) : activeTurn && turnSheets ? (
+                  <div
+                    className="pointer-events-none absolute inset-0 z-50 select-none"
+                    style={{ zIndex: 50 }}
+                  >
+                    <BookLeafTurn
+                      direction={activeTurn.direction}
+                      isDesktop={true}
+                      pageW={PAGE_W}
+                      pageH={PAGE_H}
+                      spineW={SPINE_W}
+                      offsetLeft={COVER_PAD}
+                      offsetTop={COVER_PAD}
+                      frontSheet={turnSheets.frontSheet}
+                      backSheet={turnSheets.backSheet}
+                      underSheet={turnSheets.backSheet ? turnSheets.underSheet : null}
+                      registerFrameListener={pageTurn.registerFrameListener}
+                      getCurrentCurl={pageTurn.getCurrentCurl}
+                    />
+                  </div>
+                ) : null}
               </div>
 
               {/* 3D HINGED HARDCOVER (Opens directly into Page 1 on its inner face!) */}
               <BookCover3D
                 isOpen={isBookOpen}
                 onOpen={openBook}
+                onClose={toggleCover}
                 isDesktop={true}
                 onProgressChange={syncCoverPhysics}
+                onCoverSettled={handleCoverSettled}
                 interiorLeftPage={
                   <NotebookSheet
                     side="left"
@@ -986,11 +1444,18 @@ export default function App() {
             /* MOBILE: SINGLE PAGE 3D BOOK WITH PAPER CURL & SOLID COVER      */
             /* ============================================================== */
             <div
-              className="relative shrink-0 transform-style-3d"
+              key="mobile-stage"
+              className="relative shrink-0 transform-style-3d touch-pan-y"
               style={{
                 width: `${MOBILE_BOOK_W}px`,
                 height: `${MOBILE_BOOK_H}px`,
+                transform: 'none',
               }}
+              onTouchStart={handleMobileTouchStart}
+              onTouchEnd={handleMobileTouchEnd}
+              onTouchCancel={handleMobileTouchCancel}
+              onPointerDown={handleMobilePointerDown}
+              onPointerUp={handleMobilePointerUp}
             >
               {/* Ground Drop Shadow under Mobile Book */}
               <div
@@ -1039,10 +1504,43 @@ export default function App() {
                 <section
                   ref={mobileInnerRef}
                   aria-label={`Book Page ${currentPage + 1}`}
-                  onTouchStart={handleMobileTouchStart}
-                  onTouchEnd={handleMobileTouchEnd}
-                  className="absolute left-[6px] top-[14px] w-[474px] h-[614px] z-10"
+                  className="absolute left-[6px] top-[14px] w-[474px] h-[614px] z-10 touch-pan-y"
                 >
+                  {/* Underlying deckled paper leaves on mobile */}
+                  <div
+                    className="pointer-events-none absolute inset-0 z-0 transition-all duration-300 ease-out"
+                    style={{
+                      opacity:
+                        isBookOpen &&
+                        currentPage < TOTAL_PAGES - 1 &&
+                        mobilePaperStackRatio > 0.35
+                          ? 1
+                          : 0,
+                      transform: `translate3d(${mobilePaperStackRatio * 3.5}px, ${mobilePaperStackRatio * 1.5}px, 0)`,
+                      filter: 'drop-shadow(2px 3px 4px rgba(18, 14, 10, 0.28))',
+                    }}
+                    aria-hidden="true"
+                  >
+                    <div className="notebook-page notebook-right w-full h-full bg-[#dfd4ba]" />
+                  </div>
+
+                  <div
+                    className="pointer-events-none absolute inset-0 z-0 transition-all duration-300 ease-out"
+                    style={{
+                      opacity:
+                        isBookOpen &&
+                        currentPage < TOTAL_PAGES - 1 &&
+                        mobilePaperStackRatio > 0.05
+                          ? 1
+                          : 0,
+                      transform: `translate3d(${mobilePaperStackRatio * 1.8}px, ${mobilePaperStackRatio * 0.8}px, 0)`,
+                      filter: 'drop-shadow(1px 2px 2.5px rgba(18, 14, 10, 0.18))',
+                    }}
+                    aria-hidden="true"
+                  >
+                    <div className="notebook-page notebook-right w-full h-full bg-[#ebe1cc]" />
+                  </div>
+
                   {/* Matte-black inside back liner exposed when Page 12 is ripped */}
                   {currentPage === TOTAL_PAGES - 1 && (
                     <div
@@ -1056,7 +1554,8 @@ export default function App() {
                   <div
                     className="relative w-full h-full z-10"
                     style={{
-                      opacity: activeTurn?.direction === 'next' ? 0 : 1,
+                      opacity:
+                        activeTurn?.direction === 'next' || activeRiffle ? 0 : 1,
                       visibility:
                         activeAirplaneNote && currentPage === TOTAL_PAGES - 1
                           ? 'hidden'
@@ -1067,7 +1566,12 @@ export default function App() {
                       side="mobile"
                       pageIndex={currentPage}
                       totalPages={TOTAL_PAGES}
-                      interactive={isBookOpen && !activeTurn && !activeAirplaneNote}
+                      interactive={
+                        isBookOpen &&
+                        !activeTurn &&
+                        !activeAirplaneNote &&
+                        !activeRiffle
+                      }
                       onPrev={handlePrev}
                       onNext={handleNext}
                     >
@@ -1094,74 +1598,86 @@ export default function App() {
                     aria-hidden="true"
                   />
 
-                  {/* Mobile right-edge drag handles for next page turn */}
+                  {/* Mobile right-edge corner drag handles for next page turn */}
                   {canNext && isBookOpen && (
                     <>
                       <div
-                        className="page-drag-zone absolute right-0 top-14 bottom-14 w-8 z-30"
-                        {...makeEdgeDragProps('next')}
-                        title="Drag page edge to flip page"
-                      />
-                      <div
-                        className="page-drag-zone absolute right-0 top-0 w-12 h-14 z-40"
+                        className="page-drag-zone absolute right-0 top-0 w-14 h-16 z-40"
                         {...makeEdgeDragProps('next', 'top')}
-                        title="Hover or drag corner to flip page"
+                        title="Swipe or drag corner to flip page"
                       />
                       <div
-                        className="page-drag-zone absolute right-0 bottom-0 w-11 h-14 z-40"
+                        className="page-drag-zone absolute right-0 bottom-0 w-14 h-16 z-40"
                         {...makeEdgeDragProps('next', 'bottom')}
-                        title="Hover or drag corner to flip page"
+                        title="Swipe or drag corner to flip page"
                       />
+                      <div className="dog-ear-curl-cue br" aria-hidden="true" />
                     </>
                   )}
 
-                  {/* Mobile left-edge drag handles for prev page turn */}
+                  {/* Mobile left-edge corner drag handles for prev page turn */}
                   {canPrev && isBookOpen && (
                     <>
                       <div
-                        className="page-drag-zone absolute left-0 top-14 bottom-14 w-8 z-30"
-                        {...makeEdgeDragProps('prev')}
-                        title="Drag page edge to turn back"
-                      />
-                      <div
-                        className="page-drag-zone absolute left-0 top-0 w-12 h-14 z-40"
+                        className="page-drag-zone absolute left-0 top-0 w-14 h-16 z-40"
                         {...makeEdgeDragProps('prev', 'top')}
-                        title="Hover or drag corner to turn back"
+                        title="Swipe or drag corner to turn back"
                       />
                       <div
-                        className="page-drag-zone absolute left-0 bottom-0 w-11 h-14 z-40"
+                        className="page-drag-zone absolute left-0 bottom-0 w-14 h-16 z-40"
                         {...makeEdgeDragProps('prev', 'bottom')}
-                        title="Hover or drag corner to turn back"
+                        title="Swipe or drag corner to turn back"
                       />
+                      <div className="dog-ear-curl-cue bl" aria-hidden="true" />
                     </>
                   )}
                 </section>
               </div>
 
-              {/* Mobile Curved Paper Leaf Turn (474px x 614px) */}
-              {activeTurn && turnSheets && (
-                <BookLeafTurn
-                  direction={activeTurn.direction}
+              {/* Mobile Multi-Leaf Cascading Riffle or Curved Paper Leaf Turn */}
+              {activeRiffle ? (
+                <BookRiffle
+                  direction={activeRiffle.direction}
                   isDesktop={false}
                   pageW={PAGE_W}
                   pageH={PAGE_H}
                   spineW={0}
                   offsetLeft={MOBILE_SPINE_W}
                   offsetTop={COVER_PAD}
-                  frontSheet={turnSheets.frontSheet}
-                  backSheet={turnSheets.backSheet}
-                  underSheet={turnSheets.underSheet}
-                  registerFrameListener={pageTurn.registerFrameListener}
-                  getCurrentCurl={pageTurn.getCurrentCurl}
+                  leaves={activeRiffle.leaves}
+                  underSheet={activeRiffle.underSheet}
+                  onComplete={handleRiffleComplete}
                 />
-              )}
+              ) : activeTurn && turnSheets ? (
+                <div
+                  className="pointer-events-none absolute inset-0 z-50 select-none"
+                  style={{ zIndex: 50 }}
+                >
+                  <BookLeafTurn
+                    direction={activeTurn.direction}
+                    isDesktop={false}
+                    pageW={PAGE_W}
+                    pageH={PAGE_H}
+                    spineW={0}
+                    offsetLeft={MOBILE_SPINE_W}
+                    offsetTop={COVER_PAD}
+                    frontSheet={turnSheets.frontSheet}
+                    backSheet={turnSheets.backSheet}
+                    underSheet={turnSheets.underSheet}
+                    registerFrameListener={pageTurn.registerFrameListener}
+                    getCurrentCurl={pageTurn.getCurrentCurl}
+                  />
+                </div>
+              ) : null}
 
               {/* Mobile 3D Hinged Cover */}
               <BookCover3D
                 isOpen={isBookOpen}
                 onOpen={openBook}
+                onClose={toggleCover}
                 isDesktop={false}
                 onProgressChange={syncCoverPhysics}
+                onCoverSettled={handleCoverSettled}
               />
 
               {/* Mobile 3D Page Rip, Origami Airplane Fold & Launch Overlay */}

@@ -6,13 +6,22 @@ interface GaboMascotProps {
   variant?: 'hero' | 'compact' | 'logo'
   flipTrigger?: number
   className?: string
+  isDesktop?: boolean
 }
 
-const BONUS_QUIPS = [
+const BONUS_QUIPS_DESKTOP = [
   'Hey! Watch the glasses, I just cleaned them.',
   'Fun fact: this whole notebook has zero scrollbars!',
   'Built with React, Tailwind CSS, and GSAP page flips.',
   'Grab a page corner, or use the Left/Right arrow keys, to turn pages!',
+  'Real photos = torn cutouts. Everything else = black & red ink!',
+]
+
+const BONUS_QUIPS_MOBILE = [
+  'Hey! Watch the glasses, I just cleaned them.',
+  'Fun fact: this whole notebook has zero scrollbars!',
+  'Built with React, Tailwind CSS, and GSAP page flips.',
+  'Swipe to flip pages, or grab a corner!',
   'Real photos = torn cutouts. Everything else = black & red ink!',
 ]
 
@@ -21,7 +30,9 @@ export default function GaboMascot({
   variant = 'hero',
   flipTrigger = 0,
   className = '',
+  isDesktop = true,
 }: GaboMascotProps) {
+  const bonusQuips = isDesktop ? BONUS_QUIPS_DESKTOP : BONUS_QUIPS_MOBILE
   const imgRef = useRef<HTMLImageElement>(null)
   const bubbleRef = useRef<HTMLDivElement>(null)
   const [customQuip, setCustomQuip] = useState<{
@@ -80,7 +91,7 @@ export default function GaboMascot({
           ? prev.index
           : null
       return {
-        index: currentIdx === null ? 0 : (currentIdx + 1) % BONUS_QUIPS.length,
+        index: currentIdx === null ? 0 : (currentIdx + 1) % bonusQuips.length,
         forSpeech: speech,
         forTrigger: flipTrigger,
       }
@@ -94,7 +105,7 @@ export default function GaboMascot({
     }
   }
 
-  const activeSpeech = activeQuipIndex !== null ? BONUS_QUIPS[activeQuipIndex] : speech
+  const activeSpeech = activeQuipIndex !== null ? bonusQuips[activeQuipIndex] : speech
 
   if (variant === 'logo') {
     return (
@@ -135,7 +146,7 @@ export default function GaboMascot({
             className="speech-bubble absolute -top-11 right-0 z-30 bg-card px-2.5 py-1 text-ink w-44 shadow-sm pointer-events-none"
           >
             <p className="hand text-sm leading-tight text-ink font-semibold">
-              {BONUS_QUIPS[activeQuipIndex]}
+              {bonusQuips[activeQuipIndex]}
             </p>
           </div>
         )}

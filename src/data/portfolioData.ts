@@ -1,13 +1,7 @@
-export interface TechItem {
-  name: string
-  isAddition?: boolean
-  note: string
-}
-
 export interface TechGroup {
   title: string
   page: 1 | 2
-  items: TechItem[]
+  items: string[]
 }
 
 export interface CutoutPhoto {
@@ -26,6 +20,11 @@ export interface AchievementEntry {
   photos: CutoutPhoto[]
 }
 
+export interface ProjectLayerDetail {
+  layer: string
+  tools: string
+}
+
 export interface ProjectEntry {
   id: string
   title: string
@@ -36,6 +35,8 @@ export interface ProjectEntry {
   tilt: number
   note: string
   link?: string
+  platformStack?: ProjectLayerDetail[]
+  hardwareStack?: string
 }
 
 export interface CertEntry {
@@ -53,80 +54,75 @@ export const TECH_GROUPS: TechGroup[] = [
     title: 'Frontend Development',
     page: 1,
     items: [
-      { name: 'HTML5', note: 'Semantic markup, native dialog APIs, and accessible document structure.' },
-      { name: 'CSS3', note: 'Custom properties, 3D transforms, ruled notebook grids, and responsive layouts.' },
-      { name: 'JavaScript', note: 'Core language for interactive web apps, DOM choreography, and async logic.' },
-      { name: 'Tailwind CSS', note: 'Fast utility-driven styling and design token systems.' },
-      { name: 'Bootstrap', note: 'Rapid layout prototyping and legacy responsive web dashboards.' },
-      { name: 'React', note: 'Component architecture, custom hooks, and interactive stateful interfaces.' },
-      { name: 'Vite', note: 'Instant dev server and optimized production bundling for modern web apps.' },
-      { name: 'TypeScript', isAddition: true, note: 'Strict static typing across React components and backend contracts.' },
-      { name: 'GSAP', isAddition: true, note: 'Timeline choreography, 3D page turns, and 60fps tactile animations.' },
+      'HTML5',
+      'CSS3',
+      'JavaScript',
+      'Tailwind CSS',
+      'Bootstrap',
+      'React',
+      'Next.js',
+      'Vite',
+      'TypeScript',
+      'GSAP',
     ],
   },
   {
     title: 'Mobile Development',
     page: 1,
-    items: [
-      { name: 'Flutter', note: 'Cross-platform mobile apps with custom widget trees and fluid animations.' },
-      { name: 'Dart', note: 'Sound null-safety, async streams, and clean mobile application logic.' },
-      { name: 'Android Studio', note: 'Device emulation, profiling, debugging, and native Android builds.' },
-    ],
+    items: ['Flutter', 'Dart', 'Android Studio'],
   },
   {
     title: 'Backend Development',
     page: 1,
     items: [
-      { name: 'Node.js', note: 'Event-driven server runtime for APIs, realtime tools, and build scripts.' },
-      { name: 'Express.js', note: 'Lightweight routing, middleware chains, and backend service endpoints.' },
-      { name: 'Java', note: 'Object-oriented systems, data structures, and certified foundations.' },
-      { name: 'Python', note: 'Automation scripts, data tooling, and rapid algorithm prototyping.' },
-      { name: 'C', note: 'Low-level memory fundamentals, pointers, and systems programming.' },
-      { name: 'C++', note: 'Performance-critical algorithms and competitive programming problem solving.' },
-      { name: 'REST APIs', isAddition: true, note: 'Clean JSON contracts, authentication flows, and client-server integration.' },
+      'Node.js',
+      'Express.js',
+      'Java',
+      'Python',
+      'C',
+      'C++',
+      'REST APIs',
     ],
   },
   {
     title: 'Game Development',
     page: 1,
-    items: [
-      { name: 'Godot', note: 'Node-based 2D and 3D game engine for indie prototypes and mechanics.' },
-      { name: 'GDScript', isAddition: true, note: 'Gameplay scripting for physics, state machines, and scene signals in Godot.' },
-    ],
+    items: ['Godot', 'GDScript'],
   },
   {
     title: 'Databases',
     page: 2,
     items: [
-      { name: 'MySQL', note: 'Relational schema design, joins, indexing, and transactional queries.' },
-      { name: 'MongoDB', note: 'Document-oriented collections and flexible schema modeling for Node apps.' },
-      { name: 'Firebase', note: 'Realtime syncing, authentication, and fast mobile/web backend setup.' },
-      { name: 'Supabase', note: 'Open-source Postgres backend with row-level security and realtime hooks.' },
-      { name: 'PostgreSQL', isAddition: true, note: 'Production relational database powering Supabase and structured apps.' },
-      { name: 'SQLite', isAddition: true, note: 'Embedded local storage for Flutter mobile apps and offline-first tools.' },
+      'MySQL',
+      'MongoDB',
+      'Firebase',
+      'Supabase',
+      'PostgreSQL',
+      'SQLite',
     ],
   },
   {
     title: 'AI Tools',
     page: 2,
     items: [
-      { name: 'Codex', isAddition: true, note: "OpenAI's autonomous coding agent for multi-step code generation, editing, and task execution." },
-      { name: 'Antigravity', isAddition: true, note: "Google's agentic IDE for orchestrating multi-agent coding and browser workflows." },
-      { name: 'Claude Code', isAddition: true, note: "Anthropic's CLI coding agent for deep codebase comprehension and autonomous refactoring." },
-      { name: 'OpenCode', isAddition: true, note: 'Open-source terminal agent for agentic dev workflows and tool orchestration.' },
+      'OpenAI SDK',
+      'Codex',
+      'Antigravity',
+      'Claude Code',
+      'OpenCode',
     ],
   },
   {
     title: 'Tools & Platforms',
     page: 2,
     items: [
-      { name: 'Git', note: 'Branching workflows, clean commit histories, and team collaboration.' },
-      { name: 'Postman', note: 'Testing API endpoints, inspecting payloads, and automating collections.' },
-      { name: 'Render', note: 'Cloud hosting for full-stack Node services and web deployments.' },
-      { name: 'GitHub', isAddition: true, note: 'Code hosting, pull requests, and collaborative hackathon workflows.' },
-      { name: 'VS Code', isAddition: true, note: 'Daily driver code editor configured for TypeScript, React, and Python.' },
-      { name: 'Vercel', isAddition: true, note: 'Zero-config edge deployment for React and Vite frontend projects.' },
-      { name: 'Figma', isAddition: true, note: 'Wireframing UI layouts, paper mockups, and component systems before coding.' },
+      'Git',
+      'Postman',
+      'Render',
+      'GitHub',
+      'VS Code',
+      'Vercel',
+      'Figma',
     ],
   },
 ]
@@ -201,11 +197,45 @@ export const PROJECTS: ProjectEntry[] = [
     title: 'WattWise',
     category: '★ Capstone Project',
     desc: 'AI-Based Smart Appliance Energy Consumption Monitoring and Optimization System with Predictive Cost Analysis.',
-    tech: ['Flutter', 'Python', 'IoT', 'AI / ML'],
+    tech: [
+      'Next.js 16',
+      'React 19',
+      'TypeScript',
+      'Tailwind CSS 4',
+      'Supabase',
+      'OpenAI SDK',
+      'C++ (Hardware)',
+      'Vercel',
+    ],
     img: '/images/project-images/project7.jpg',
     tilt: -1.6,
-    note: 'Our academic capstone project — smart energy monitoring & predictive cost breakdown.',
+    note: 'Academic capstone — Next.js 16 platform + C++ hardware side.',
     link: 'https://www.wattwise-app.site/',
+    platformStack: [
+      {
+        layer: 'Frontend',
+        tools:
+          'Next.js 16 (App Router, React Compiler), React 19, TypeScript, Tailwind CSS 4, Recharts, Lucide; Space Grotesk via next/font',
+      },
+      {
+        layer: 'Backend',
+        tools: 'Supabase (Postgres, Auth, Realtime, RLS, Edge Functions)',
+      },
+      {
+        layer: 'AI',
+        tools: 'OpenAI SDK (server-side only)',
+      },
+      {
+        layer: 'Notifications',
+        tools: 'OneSignal Web Push, Resend email',
+      },
+      {
+        layer: 'Hosting',
+        tools:
+          'Vercel, functions pinned to Seoul ( icn1 ) next to the Supabase project in ap-northeast-2 (OpenNext Cloudflare scripts also available)',
+      },
+    ],
+    hardwareStack: 'C++ (Microcontroller & sensor firmware for smart energy monitoring)',
   },
   {
     id: 'proj-carm',
@@ -374,15 +404,29 @@ export interface NavTabItem {
   exactPages: number[]
 }
 
-export const NAV_TABS: NavTabItem[] = [
-  { id: 'intro', label: 'Intro', shortLabel: 'Intro', targetPage: 0, spreadIndexes: [0], mobilePages: [0], exactPages: [0] },
-  { id: 'me', label: 'Me', shortLabel: 'Me', targetPage: 1, spreadIndexes: [0], mobilePages: [1], exactPages: [1] },
+// 2-Spread (PC / Desktop View) Navigation Tabs:
+// "2 spreads like intro and me should count as 1 tab. then certs should be certificates in pc view."
+export const DESKTOP_NAV_TABS: NavTabItem[] = [
+  { id: 'intro-about-me', label: 'Intro and About Me', shortLabel: 'Intro and About Me', targetPage: 0, spreadIndexes: [0], mobilePages: [0, 1], exactPages: [0, 1] },
   { id: 'tech', label: 'Tech Stack', shortLabel: 'Tech', targetPage: 2, spreadIndexes: [1], mobilePages: [2, 3], exactPages: [2, 3] },
   { id: 'achievements', label: 'Achievements', shortLabel: 'Awards', targetPage: 4, spreadIndexes: [2], mobilePages: [4, 5], exactPages: [4, 5] },
   { id: 'projects', label: 'Projects', shortLabel: 'Projects', targetPage: 6, spreadIndexes: [3, 4], mobilePages: [6, 7, 8], exactPages: [6, 7, 8, 9] },
-  { id: 'certs', label: 'Certs', shortLabel: 'Certs', targetPage: 10, spreadIndexes: [5], mobilePages: [10], exactPages: [10] },
+  { id: 'certs-notes', label: 'Certificates & Notes', shortLabel: 'Certs & Notes', targetPage: 10, spreadIndexes: [5], mobilePages: [10, 11], exactPages: [10, 11] },
+]
+
+// 1-Spread (Mobile View) Navigation Tabs:
+// Distinct tabs for each 1-page section using whole words (Intro and About Me separate tabs)
+export const MOBILE_NAV_TABS: NavTabItem[] = [
+  { id: 'intro', label: 'Intro', shortLabel: 'Intro', targetPage: 0, spreadIndexes: [0], mobilePages: [0], exactPages: [0] },
+  { id: 'about-me', label: 'About Me', shortLabel: 'About Me', targetPage: 1, spreadIndexes: [0], mobilePages: [1], exactPages: [1] },
+  { id: 'tech', label: 'Tech Stack', shortLabel: 'Tech Stack', targetPage: 2, spreadIndexes: [1], mobilePages: [2, 3], exactPages: [2, 3] },
+  { id: 'achievements', label: 'Achievements', shortLabel: 'Achievements', targetPage: 4, spreadIndexes: [2], mobilePages: [4, 5], exactPages: [4, 5] },
+  { id: 'projects', label: 'Projects', shortLabel: 'Projects', targetPage: 6, spreadIndexes: [3, 4], mobilePages: [6, 7, 8], exactPages: [6, 7, 8, 9] },
+  { id: 'certs', label: 'Certificates', shortLabel: 'Certificates', targetPage: 10, spreadIndexes: [5], mobilePages: [10], exactPages: [10] },
   { id: 'notes', label: 'Notes', shortLabel: 'Notes', targetPage: 11, spreadIndexes: [5], mobilePages: [11], exactPages: [11] },
 ]
+
+export const NAV_TABS: NavTabItem[] = DESKTOP_NAV_TABS
 
 export interface MobilePageTab {
   id: string
@@ -418,10 +462,10 @@ export interface SpreadMeta {
 export const SPREADS_META: SpreadMeta[] = [
   {
     spreadIndex: 0,
-    tabLabel: 'Intro & Me',
+    tabLabel: 'Intro and About Me',
     leftPageTitle: 'Intro Logbook',
     rightPageTitle: 'About Louis (Gabo)',
-    mascotSpeech: 'Grab a page corner to flip, or use the Left/Right arrow keys!',
+    mascotSpeech: 'Grab a page corner or swipe to flip pages!',
   },
   {
     spreadIndex: 1,
