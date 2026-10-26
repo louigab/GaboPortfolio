@@ -123,7 +123,7 @@ export default function GaboMascot({
         >
           <img
             ref={imgRef}
-            src="/gaboCharacter.png"
+            src="/images/character/gaboCharacter.png"
             alt="Drawn Wimpy Kid style illustration of Gabo with hands in pockets"
             className="h-[330px] w-auto object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
           />
@@ -153,7 +153,7 @@ export default function GaboMascot({
       >
         <img
           ref={imgRef}
-          src="/gaboCharacter.png"
+          src="/images/character/gaboCharacter.png"
           alt="Drawn Wimpy Kid style illustration of Gabo"
           className="h-28 w-auto object-contain"
         />

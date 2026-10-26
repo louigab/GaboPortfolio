@@ -78,7 +78,7 @@ export default function About({ onInspectPhoto }: AboutProps) {
         <div className="relative grid grid-cols-2 gap-4 items-start px-2">
           <div className="relative z-10">
             <MagazineCutout
-              src="/achievements/AppBuildersPH_9thPlace_1.jpg"
+              src="/images/achievements/AppBuildersPH_9thPlace_1.jpg"
               alt="AppBuilders PH 9th Place"
               caption="AppBuilders PH (9th)"
               tilt={-1.8}
@@ -91,7 +91,7 @@ export default function About({ onInspectPhoto }: AboutProps) {
           </div>
           <div className="relative z-20">
             <MagazineCutout
-              src="/achievements/hack4gov_2025_1.jpg"
+              src="/images/achievements/hack4gov_2025_1.jpg"
               alt="Hack4Gov 2025 Team"
               caption="Hack4Gov 2025"
               tilt={1.8}

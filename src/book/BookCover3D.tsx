@@ -288,7 +288,7 @@ function CoverArtwork({
 
                 {/* Gabo Character */}
                 <img
-                  src="/gaboCharacter.png"
+                  src="/images/character/gaboCharacter.png"
                   alt="Gabo illustration on diary cover"
                   className="h-[218px] w-auto object-contain relative z-20"
                 />

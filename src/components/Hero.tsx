@@ -89,7 +89,7 @@ export default function Hero({ onGoToPage, onInspectPhoto, flipTrigger = 0 }: He
         {/* Left: Angled Torn Portrait Cutout sized so the center doodle channel stays open */}
         <div className="relative z-10 ml-2 mt-1">
           <MagazineCutout
-            src="/gaboPic.png"
+            src="/images/profile/gaboPic.png"
             alt="Louis Gabriel D. Damondamon (Gabo)"
             tilt={-3.5}
             variant="portrait"

@@ -3,7 +3,7 @@ import React from 'react'
 export function DoodleCrown({ className = 'w-8 h-6' }: { className?: string }) {
   return (
     <img
-      src="/doodles/crown.png"
+      src="/images/doodles/crown.png"
       alt=""
       aria-hidden="true"
       className={`object-contain select-none pointer-events-none ${className}`}
@@ -35,7 +35,7 @@ export function DoodleStar({
 
   return (
     <img
-      src="/doodles/star.png"
+      src="/images/doodles/star.png"
       alt=""
       aria-hidden="true"
       className={`object-contain select-none pointer-events-none ${className}`}
@@ -294,7 +294,7 @@ export function TornScrapButton({
 export function DoodleLaptop({ className = 'w-20 h-16' }: { className?: string }) {
   return (
     <img
-      src="/doodles/laptop.png"
+      src="/images/doodles/laptop.png"
       alt=""
       aria-hidden="true"
       className={`object-contain select-none pointer-events-none ${className}`}
@@ -305,7 +305,7 @@ export function DoodleLaptop({ className = 'w-20 h-16' }: { className?: string }
 export function DoodleCoffee({ className = 'w-11 h-12' }: { className?: string }) {
   return (
     <img
-      src="/doodles/coffee.png"
+      src="/images/doodles/coffee.png"
       alt=""
       aria-hidden="true"
       className={`object-contain select-none pointer-events-none ${className}`}
@@ -322,10 +322,10 @@ export function DoodleCodeBrackets({
 }) {
   const src =
     variant === 'both'
-      ? '/doodles/brackets.png'
+      ? '/images/doodles/brackets.png'
       : variant === 'open'
-        ? '/doodles/brackets-open.png'
-        : '/doodles/brackets-slash.png'
+        ? '/images/doodles/brackets-open.png'
+        : '/images/doodles/brackets-slash.png'
   return (
     <img
       src={src}
@@ -339,7 +339,7 @@ export function DoodleCodeBrackets({
 export function DoodleLightning({ className = 'w-12 h-10' }: { className?: string }) {
   return (
     <img
-      src="/doodles/lightning.png"
+      src="/images/doodles/lightning.png"
       alt=""
       aria-hidden="true"
       className={`object-contain select-none pointer-events-none ${className}`}
@@ -374,7 +374,7 @@ export function DoodleMusicNotes({
 export function DoodleMiniGuitar({ className = 'w-12 h-20' }: { className?: string }) {
   return (
     <img
-      src="/doodles/guitar-mini.png"
+      src="/images/doodles/guitar-mini.png"
       alt=""
       aria-hidden="true"
       className={`object-contain select-none pointer-events-none ${className}`}
@@ -385,7 +385,7 @@ export function DoodleMiniGuitar({ className = 'w-12 h-20' }: { className?: stri
 export function DoodleElectricGuitar({ className = 'w-14 h-44' }: { className?: string }) {
   return (
     <img
-      src="/doodles/guitar-vertical.png"
+      src="/images/doodles/guitar-vertical.png"
       alt=""
       aria-hidden="true"
       className={`object-contain select-none pointer-events-none ${className}`}
@@ -396,7 +396,7 @@ export function DoodleElectricGuitar({ className = 'w-14 h-44' }: { className?: 
 export function DoodleAmp({ className = 'w-14 h-14' }: { className?: string }) {
   return (
     <img
-      src="/doodles/amp.png"
+      src="/images/doodles/amp.png"
       alt=""
       aria-hidden="true"
       className={`object-contain select-none pointer-events-none ${className}`}
