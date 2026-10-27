@@ -26,6 +26,8 @@ import BookCover3D from './book/BookCover3D'
 import BookLeafTurn from './book/BookLeafTurn'
 import BookRiffle, { type BookRiffleLeaf } from './book/BookRiffle'
 import NotebookSheet from './book/NotebookSheet'
+import PhysicalPaperStack from './book/PhysicalPaperStack'
+import { getTornVariant, tornVariantClass } from './book/tornEdges'
 import PaperAirplaneFlight, {
   SpineReplacementTapes,
   TornSpineStub,
@@ -60,6 +62,8 @@ interface ActiveRiffleState {
   targetPage: number
   leaves: BookRiffleLeaf[]
   underSheet: React.ReactNode | null
+  duration?: number
+  isClosing?: boolean
 }
 
 const getAdjacentSinglePage = (page: number, dir: TurnDirection): number => {
@@ -101,10 +105,14 @@ export default function App() {
   // Multi-page cascading riffle state & instant destination tab selection
   const [activeRiffle, setActiveRiffle] = useState<ActiveRiffleState | null>(null)
   const [navActivePage, setNavActivePage] = useState<number | null>(null)
+  const [isClosingBook, setIsClosingBook] = useState(false)
   const goToPageRef = useRef<(targetPage: number) => void>(() => {})
 
   const handleCoverSettled = useCallback((settledOpen: boolean) => {
     setIsBookFullyOpen(settledOpen)
+    if (!settledOpen) {
+      setIsClosingBook(false)
+    }
   }, [])
 
   // Track viewport size & compute uniform scale factor
@@ -280,6 +288,9 @@ export default function App() {
     setActiveRiffle((curr) => {
       if (curr) {
         setCurrentPage(curr.targetPage)
+        if (curr.isClosing) {
+          setIsBookOpen(false)
+        }
       }
       return null
     })
@@ -365,7 +376,7 @@ export default function App() {
 
   const goToPage = useCallback(
     (targetPage: number) => {
-      if (activeAirplaneNote || activeRiffle) return
+      if (activeAirplaneNote || activeRiffle || isClosingBook) return
       let clamped = clamp(targetPage, 0, TOTAL_PAGES - 1)
       if (!isDesktop && clamped === BLANK_PAGE_INDEX) {
         clamped = 10
@@ -622,6 +633,7 @@ export default function App() {
       activeRiffle,
       currentPage,
       isBookOpen,
+      isClosingBook,
       isDesktop,
       leftPageIndex,
       pageTurn,
@@ -634,7 +646,7 @@ export default function App() {
   })
 
   const handleNext = useCallback(() => {
-    if (activeAirplaneNote || activeRiffle) return
+    if (activeAirplaneNote || activeRiffle || isClosingBook) return
     if (!isBookOpen) {
       hasOpenedInitially.current = true
       setIsBookOpen(true)
@@ -645,10 +657,10 @@ export default function App() {
       return
     }
     pageTurn.triggerFlip('next', { corner: 'bottom' })
-  }, [activeAirplaneNote, activeRiffle, canNext, isBookOpen, pageTurn, triggerBoundaryNudge])
+  }, [activeAirplaneNote, activeRiffle, canNext, isBookOpen, isClosingBook, pageTurn, triggerBoundaryNudge])
 
   const handlePrev = useCallback(() => {
-    if (activeAirplaneNote || activeRiffle) return
+    if (activeAirplaneNote || activeRiffle || isClosingBook) return
     if (!isBookOpen) {
       hasOpenedInitially.current = true
       setIsBookOpen(true)
@@ -659,25 +671,165 @@ export default function App() {
       return
     }
     pageTurn.triggerFlip('prev', { corner: 'bottom' })
-  }, [activeAirplaneNote, activeRiffle, canPrev, isBookOpen, pageTurn, triggerBoundaryNudge])
+  }, [activeAirplaneNote, activeRiffle, canPrev, isBookOpen, isClosingBook, pageTurn, triggerBoundaryNudge])
 
   const openBook = useCallback(() => {
+    setIsClosingBook(false)
     hasOpenedInitially.current = true
     setIsBookOpen(true)
   }, [])
 
+  const handleCloseBook = useCallback(() => {
+    if (activeAirplaneNote || activeRiffle || isClosingBook) return
+    if (!isBookOpen) return
+
+    const isAtStart = isDesktop ? leftPageIndex === 0 : currentPage === 0
+
+    if (isAtStart) {
+      // Already at the front page; close directly
+      setActiveRiffle(null)
+      setNavActivePage(null)
+      hasOpenedInitially.current = true
+      setIsBookOpen(false)
+      return
+    }
+
+    // Mark closing in progress & instantly transition paper stack depth to front page
+    setIsClosingBook(true)
+    setNavActivePage(0)
+
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      setCurrentPage(0)
+      setNavActivePage(null)
+      setIsBookOpen(false)
+      setIsClosingBook(false)
+      return
+    }
+
+    if (isDesktop) {
+      const fromSpread = Math.floor(leftPageIndex / 2)
+      const dist = fromSpread
+      const leaves: BookRiffleLeaf[] = []
+      for (let i = 0; i < dist; i++) {
+        const frontIdx = (fromSpread - i) * 2
+        const backIdx = (fromSpread - i - 1) * 2 + 1
+        leaves.push({
+          frontSheet: (
+            <NotebookSheet
+              side="left"
+              pageIndex={frontIdx}
+              totalPages={TOTAL_PAGES}
+              interactive={false}
+            >
+              {renderPageContent(frontIdx)}
+            </NotebookSheet>
+          ),
+          backSheet: (
+            <NotebookSheet
+              side="right"
+              pageIndex={backIdx}
+              totalPages={TOTAL_PAGES}
+              interactive={false}
+            >
+              {renderPageContent(backIdx)}
+            </NotebookSheet>
+          ),
+        })
+      }
+      const underSheet = (
+        <NotebookSheet
+          side="left"
+          pageIndex={0}
+          totalPages={TOTAL_PAGES}
+          interactive={false}
+        >
+          {renderPageContent(0)}
+        </NotebookSheet>
+      )
+      setActiveRiffle({
+        direction: 'prev',
+        targetPage: 0,
+        leaves,
+        underSheet,
+        isClosing: true,
+      })
+    } else {
+      // Mobile 1-page mode
+      const validPages = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11]
+      const fromIdx = validPages.indexOf(currentPage)
+      const dist = fromIdx >= 0 ? fromIdx : currentPage
+      const leaves: BookRiffleLeaf[] = []
+      for (let i = 0; i < dist; i++) {
+        const frontPage = validPages[fromIdx - i]
+        const backPage = validPages[fromIdx - i - 1]
+        leaves.push({
+          frontSheet: (
+            <NotebookSheet
+              side="mobile"
+              pageIndex={frontPage}
+              totalPages={TOTAL_PAGES}
+              interactive={false}
+            >
+              {renderPageContent(frontPage)}
+            </NotebookSheet>
+          ),
+          backSheet: (
+            <NotebookSheet
+              side="mobile"
+              pageIndex={backPage}
+              totalPages={TOTAL_PAGES}
+              interactive={false}
+            >
+              {renderPageContent(backPage)}
+            </NotebookSheet>
+          ),
+        })
+      }
+      const underSheet = (
+        <NotebookSheet
+          side="mobile"
+          pageIndex={0}
+          totalPages={TOTAL_PAGES}
+          interactive={false}
+        >
+          {renderPageContent(0)}
+        </NotebookSheet>
+      )
+      setActiveRiffle({
+        direction: 'prev',
+        targetPage: 0,
+        leaves,
+        underSheet,
+        isClosing: true,
+      })
+    }
+  }, [
+    activeAirplaneNote,
+    activeRiffle,
+    currentPage,
+    isBookOpen,
+    isClosingBook,
+    isDesktop,
+    leftPageIndex,
+    renderPageContent,
+  ])
+
   const toggleCover = useCallback(() => {
-    if (activeAirplaneNote) return
-    setActiveRiffle(null)
-    setNavActivePage(null)
-    hasOpenedInitially.current = true
-    setIsBookOpen((prev) => !prev)
-  }, [activeAirplaneNote])
+    if (activeAirplaneNote || isClosingBook) return
+    if (isBookOpen) {
+      handleCloseBook()
+    } else {
+      openBook()
+    }
+  }, [activeAirplaneNote, handleCloseBook, isBookOpen, isClosingBook, openBook])
 
   // Keyboard Left / Right arrow navigation
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (inspectedPhoto) return
+      if (inspectedPhoto || isClosingBook || !isBookOpen) return
       const target = e.target as HTMLElement | null
       if (
         target &&
@@ -697,7 +849,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [handleNext, handlePrev, inspectedPhoto])
+  }, [handleNext, handlePrev, inspectedPhoto, isBookOpen, isClosingBook])
 
   // Pointer drag helpers bound to inner page spread coordinates
   const getActiveSpreadRect = (): DOMRect | null => {
@@ -708,7 +860,7 @@ export default function App() {
   const makeEdgeDragProps = (dir: TurnDirection, hoverCorner?: Corner) => ({
     onPointerEnter: hoverCorner
       ? () => {
-          if (isBookOpen && !activeAirplaneNote && !activeRiffle) {
+          if (isBookOpen && !activeAirplaneNote && !activeRiffle && !isClosingBook) {
             pageTurn.onCornerHoverEnter(dir, hoverCorner)
           }
         }
@@ -719,7 +871,7 @@ export default function App() {
         }
       : undefined,
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
-      if (!isBookOpen || activeAirplaneNote || activeRiffle) return
+      if (!isBookOpen || activeAirplaneNote || activeRiffle || isClosingBook) return
       e.stopPropagation()
       const rect = getActiveSpreadRect()
       if (rect) pageTurn.onPointerDownEdge(dir, e, rect)
@@ -847,7 +999,24 @@ export default function App() {
             </NotebookSheet>
           ),
           backSheet: (
-            <div className="notebook-page notebook-left h-full w-full bg-paper rounded-l-md" />
+            <div className={`notebook-page notebook-left ${tornVariantClass(getTornVariant(currentPage))} relative h-full w-full min-w-0 bg-paper pl-8 pr-7 pt-3.5 pb-5 flex flex-col justify-between overflow-hidden rounded-l-sm pointer-events-none select-none`}>
+              <div
+                className="pointer-events-none absolute inset-y-0 right-0 w-14 z-20"
+                style={{
+                  background:
+                    'linear-gradient(to left, rgba(14, 10, 6, 0.38) 0px, rgba(16, 11, 7, 0.25) 2.5px, rgba(18, 13, 8, 0.13) 14px, rgba(18, 13, 8, 0.045) 28px, rgba(255, 255, 255, 0.25) 42px, transparent 100%)',
+                }}
+                aria-hidden="true"
+              />
+              <div
+                className="pointer-events-none absolute inset-y-0 left-0 w-2 z-20"
+                style={{
+                  background:
+                    'linear-gradient(to right, rgba(255, 255, 255, 0.45) 0%, transparent 100%)',
+                }}
+                aria-hidden="true"
+              />
+            </div>
           ),
           underSheet: (
             <NotebookSheet
@@ -877,7 +1046,24 @@ export default function App() {
             </NotebookSheet>
           ),
           backSheet: (
-            <div className="notebook-page notebook-left h-full w-full bg-paper rounded-l-md" />
+            <div className={`notebook-page notebook-left ${tornVariantClass(getTornVariant(dest))} relative h-full w-full min-w-0 bg-paper pl-8 pr-7 pt-3.5 pb-5 flex flex-col justify-between overflow-hidden rounded-l-sm pointer-events-none select-none`}>
+              <div
+                className="pointer-events-none absolute inset-y-0 right-0 w-14 z-20"
+                style={{
+                  background:
+                    'linear-gradient(to left, rgba(14, 10, 6, 0.38) 0px, rgba(16, 11, 7, 0.25) 2.5px, rgba(18, 13, 8, 0.13) 14px, rgba(18, 13, 8, 0.045) 28px, rgba(255, 255, 255, 0.25) 42px, transparent 100%)',
+                }}
+                aria-hidden="true"
+              />
+              <div
+                className="pointer-events-none absolute inset-y-0 left-0 w-2 z-20"
+                style={{
+                  background:
+                    'linear-gradient(to right, rgba(255, 255, 255, 0.45) 0%, transparent 100%)',
+                }}
+                aria-hidden="true"
+              />
+            </div>
           ),
           underSheet: (
             <NotebookSheet
@@ -915,7 +1101,7 @@ export default function App() {
   } | null>(null)
 
   const handleMobileTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1 || !isBookOpen || activeAirplaneNote || inspectedPhoto) {
+    if (e.touches.length !== 1 || !isBookOpen || activeAirplaneNote || inspectedPhoto || isClosingBook) {
       mobileSwipeStartRef.current = null
       return
     }
@@ -938,7 +1124,8 @@ export default function App() {
       pageTurn.isDragging ||
       !isBookOpen ||
       activeAirplaneNote ||
-      inspectedPhoto
+      inspectedPhoto ||
+      isClosingBook
     ) {
       return
     }
@@ -980,7 +1167,7 @@ export default function App() {
 
   const handleMobilePointerDown = (e: React.PointerEvent) => {
     if (e.pointerType !== 'mouse' || e.button !== 0) return
-    if (!isBookOpen || activeAirplaneNote || inspectedPhoto) return
+    if (!isBookOpen || activeAirplaneNote || inspectedPhoto || isClosingBook) return
     mobileSwipeStartRef.current = {
       x: e.clientX,
       y: e.clientY,
@@ -1000,7 +1187,8 @@ export default function App() {
       pageTurn.isDragging ||
       !isBookOpen ||
       activeAirplaneNote ||
-      inspectedPhoto
+      inspectedPhoto ||
+      isClosingBook
     ) {
       return
     }
@@ -1036,9 +1224,7 @@ export default function App() {
 
   // Dynamic realistic paper stack depth (0 = empty, 1 = maximum pages)
   const effectivePage = navActivePage ?? currentPage
-  const currentSpreadIdx = Math.floor(effectivePage / 2)
-  const leftPaperStackRatio = isBookOpen ? currentSpreadIdx / 5 : 0
-  const rightPaperStackRatio = isBookOpen ? (5 - currentSpreadIdx) / 5 : 1
+  const effectiveRightPageIndex = Math.floor(effectivePage / 2) * 2 + 1
   const mobilePaperStackRatio = isBookOpen
     ? (TOTAL_PAGES - 1 - effectivePage) / (TOTAL_PAGES - 1)
     : 1
@@ -1075,8 +1261,8 @@ export default function App() {
           isDesktop={isDesktop}
           onGoToPage={goToPage}
           flipTrigger={flipTrigger}
-          isBookOpen={isBookOpen}
-          isBookFullyOpen={isBookFullyOpen}
+          isBookOpen={isBookOpen && !isClosingBook}
+          isBookFullyOpen={isBookFullyOpen && !isClosingBook}
         />
 
         {/* Main 3D Perspective Book Stage */}
@@ -1141,30 +1327,12 @@ export default function App() {
                     aria-label={`Book Page ${leftPageIndex + 1}`}
                     className="absolute top-[14px] left-[14px] w-[474px] h-[614px] z-10"
                   >
-                    {/* Underlying deckled paper leaves (physical depth for turned pages) */}
-                    <div
-                      className="pointer-events-none absolute inset-0 z-0 transition-all duration-300 ease-out"
-                      style={{
-                        opacity: isBookOpen && leftPaperStackRatio > 0.35 ? 1 : 0,
-                        transform: `translate3d(${-leftPaperStackRatio * 3.5}px, ${leftPaperStackRatio * 1.5}px, 0)`,
-                        filter: 'drop-shadow(-2px 3px 4px rgba(18, 14, 10, 0.28))',
-                      }}
-                      aria-hidden="true"
-                    >
-                      <div className="notebook-page notebook-left w-full h-full bg-[#dfd4ba]" />
-                    </div>
-
-                    <div
-                      className="pointer-events-none absolute inset-0 z-0 transition-all duration-300 ease-out"
-                      style={{
-                        opacity: isBookOpen && leftPaperStackRatio > 0.05 ? 1 : 0,
-                        transform: `translate3d(${-leftPaperStackRatio * 1.8}px, ${leftPaperStackRatio * 0.8}px, 0)`,
-                        filter: 'drop-shadow(-1px 2px 2.5px rgba(18, 14, 10, 0.18))',
-                      }}
-                      aria-hidden="true"
-                    >
-                      <div className="notebook-page notebook-left w-full h-full bg-[#ebe1cc]" />
-                    </div>
+                    {/* 3D Physical Paper Stack (deckled leaves turned to the left) */}
+                    <PhysicalPaperStack
+                      side="left"
+                      currentSpread={Math.floor(leftPageIndex / 2)}
+                      isBookOpen={isBookOpen}
+                    />
 
                     <div
                       className="relative w-full h-full z-10"
@@ -1180,7 +1348,7 @@ export default function App() {
                         side="left"
                         pageIndex={leftPageIndex}
                         totalPages={TOTAL_PAGES}
-                        interactive={isBookOpen && !activeTurn && !activeRiffle}
+                        interactive={isBookOpen && !activeTurn && !activeRiffle && !isClosingBook}
                         onPrev={handlePrev}
                       >
                         {renderPageContent(leftPageIndex)}
@@ -1188,7 +1356,7 @@ export default function App() {
                     </div>
 
                     {/* Left Outer Margin & Corner Drag Handles */}
-                    {canPrev && isBookOpen && (
+                    {canPrev && isBookOpen && !isClosingBook && (
                       <>
                         <div
                           className="page-drag-zone absolute left-0 top-14 bottom-14 w-8 z-30"
@@ -1222,42 +1390,14 @@ export default function App() {
                     aria-label={`Book Page ${rightPageIndex + 1}`}
                     className="absolute top-[14px] left-0 w-[474px] h-[614px] z-10"
                   >
-                    {/* Underlying deckled paper leaves (physical depth for remaining pages) */}
-                    <div
-                      className="pointer-events-none absolute inset-0 z-0 transition-all duration-300 ease-out"
-                      style={{
-                        opacity:
-                          isBookOpen &&
-                          rightPageIndex < TOTAL_PAGES - 1 &&
-                          rightPaperStackRatio > 0.35
-                            ? 1
-                            : 0,
-                        transform: `translate3d(${rightPaperStackRatio * 3.5}px, ${rightPaperStackRatio * 1.5}px, 0)`,
-                        filter: 'drop-shadow(2px 3px 4px rgba(18, 14, 10, 0.28))',
-                      }}
-                      aria-hidden="true"
-                    >
-                      <div className="notebook-page notebook-right w-full h-full bg-[#dfd4ba]" />
-                    </div>
-
-                    <div
-                      className="pointer-events-none absolute inset-0 z-0 transition-all duration-300 ease-out"
-                      style={{
-                        opacity:
-                          isBookOpen &&
-                          rightPageIndex < TOTAL_PAGES - 1 &&
-                          rightPaperStackRatio > 0.05
-                            ? 1
-                            : 0,
-                        transform: `translate3d(${rightPaperStackRatio * 1.8}px, ${rightPaperStackRatio * 0.8}px, 0)`,
-                        filter: 'drop-shadow(1px 2px 2.5px rgba(18, 14, 10, 0.18))',
-                      }}
-                      aria-hidden="true"
-                    >
-                      <div className="notebook-page notebook-right w-full h-full bg-[#ebe1cc]" />
-                    </div>
+                    {/* 3D Physical Paper Stack (deckled leaves remaining on the right) */}
+                    <PhysicalPaperStack
+                      side="right"
+                      currentSpread={Math.floor(leftPageIndex / 2)}
+                      isBookOpen={isBookOpen}
+                    />
                     {/* Matte-black inside back hardcover liner exposed when Page 12 is ripped out */}
-                    {rightPageIndex === TOTAL_PAGES - 1 && (
+                    {effectiveRightPageIndex === TOTAL_PAGES - 1 && (
                       <div
                         className="pointer-events-none absolute inset-0 rounded-r-sm bg-[#141313] shadow-[inset_10px_0_24px_rgba(0,0,0,0.82)]"
                         aria-hidden="true"
@@ -1288,7 +1428,8 @@ export default function App() {
                           isBookOpen &&
                           !activeTurn &&
                           !activeAirplaneNote &&
-                          !activeRiffle
+                          !activeRiffle &&
+                          !isClosingBook
                         }
                         onNext={handleNext}
                       >
@@ -1316,7 +1457,7 @@ export default function App() {
                     />
 
                     {/* Right Outer Margin & Corner Drag Handles */}
-                    {canNext && isBookOpen && (
+                    {canNext && isBookOpen && !isClosingBook && (
                       <>
                         <div
                           className="page-drag-zone absolute right-0 top-14 bottom-14 w-8 z-30"
@@ -1377,6 +1518,7 @@ export default function App() {
                     offsetTop={COVER_PAD}
                     leaves={activeRiffle.leaves}
                     underSheet={activeRiffle.underSheet}
+                    duration={activeRiffle.duration}
                     onComplete={handleRiffleComplete}
                   />
                 ) : activeTurn && turnSheets ? (
@@ -1413,11 +1555,11 @@ export default function App() {
                 interiorLeftPage={
                   <NotebookSheet
                     side="left"
-                    pageIndex={leftPageIndex}
+                    pageIndex={isClosingBook ? 0 : leftPageIndex}
                     totalPages={TOTAL_PAGES}
                     interactive={false}
                   >
-                    {renderPageContent(leftPageIndex)}
+                    {renderPageContent(isClosingBook ? 0 : leftPageIndex)}
                   </NotebookSheet>
                 }
               />
@@ -1512,7 +1654,7 @@ export default function App() {
                     style={{
                       opacity:
                         isBookOpen &&
-                        currentPage < TOTAL_PAGES - 1 &&
+                        effectivePage < TOTAL_PAGES - 1 &&
                         mobilePaperStackRatio > 0.35
                           ? 1
                           : 0,
@@ -1521,7 +1663,7 @@ export default function App() {
                     }}
                     aria-hidden="true"
                   >
-                    <div className="notebook-page notebook-right w-full h-full bg-[#dfd4ba]" />
+                    <div className={`notebook-page notebook-right ${tornVariantClass(getTornVariant(getAdjacentSinglePage(getAdjacentSinglePage(currentPage, 'next'), 'next')))} w-full h-full bg-[#dfd4ba]`} />
                   </div>
 
                   <div
@@ -1529,7 +1671,7 @@ export default function App() {
                     style={{
                       opacity:
                         isBookOpen &&
-                        currentPage < TOTAL_PAGES - 1 &&
+                        effectivePage < TOTAL_PAGES - 1 &&
                         mobilePaperStackRatio > 0.05
                           ? 1
                           : 0,
@@ -1538,11 +1680,11 @@ export default function App() {
                     }}
                     aria-hidden="true"
                   >
-                    <div className="notebook-page notebook-right w-full h-full bg-[#ebe1cc]" />
+                    <div className={`notebook-page notebook-right ${tornVariantClass(getTornVariant(getAdjacentSinglePage(currentPage, 'next')))} w-full h-full bg-[#ebe1cc]`} />
                   </div>
 
                   {/* Matte-black inside back liner exposed when Page 12 is ripped */}
-                  {currentPage === TOTAL_PAGES - 1 && (
+                  {effectivePage === TOTAL_PAGES - 1 && (
                     <div
                       className="pointer-events-none absolute inset-0 rounded-r-sm bg-[#141313] shadow-[inset_10px_0_24px_rgba(0,0,0,0.82)]"
                       aria-hidden="true"
@@ -1570,7 +1712,8 @@ export default function App() {
                         isBookOpen &&
                         !activeTurn &&
                         !activeAirplaneNote &&
-                        !activeRiffle
+                        !activeRiffle &&
+                        !isClosingBook
                       }
                       onPrev={handlePrev}
                       onNext={handleNext}
@@ -1599,7 +1742,7 @@ export default function App() {
                   />
 
                   {/* Mobile right-edge corner drag handles for next page turn */}
-                  {canNext && isBookOpen && (
+                  {canNext && isBookOpen && !isClosingBook && (
                     <>
                       <div
                         className="page-drag-zone absolute right-0 top-0 w-14 h-16 z-40"
@@ -1616,7 +1759,7 @@ export default function App() {
                   )}
 
                   {/* Mobile left-edge corner drag handles for prev page turn */}
-                  {canPrev && isBookOpen && (
+                  {canPrev && isBookOpen && !isClosingBook && (
                     <>
                       <div
                         className="page-drag-zone absolute left-0 top-0 w-14 h-16 z-40"
@@ -1646,6 +1789,7 @@ export default function App() {
                   offsetTop={COVER_PAD}
                   leaves={activeRiffle.leaves}
                   underSheet={activeRiffle.underSheet}
+                  duration={activeRiffle.duration}
                   onComplete={handleRiffleComplete}
                 />
               ) : activeTurn && turnSheets ? (

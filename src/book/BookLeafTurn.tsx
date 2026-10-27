@@ -1,6 +1,7 @@
 import React, { useCallback, useLayoutEffect, useRef } from 'react'
 import type { ComputedCurl, TurnDirection } from './flipGeometry'
 import type { CurlFrameListener } from './usePageTurn'
+import { getSheetTornVariant, tornVariantClass } from './tornEdges'
 
 export interface BookLeafTurnProps {
   direction: TurnDirection
@@ -16,6 +17,7 @@ export interface BookLeafTurnProps {
   backSheet: React.ReactNode
   /** Sheet resting directly underneath the lifted sheet */
   underSheet: React.ReactNode | null
+  underStackOffset?: { x: number; y: number }
   registerFrameListener: (fn: CurlFrameListener | null) => void
   getCurrentCurl: () => ComputedCurl | null
 }
@@ -34,6 +36,7 @@ export default function BookLeafTurn({
   registerFrameListener,
   getCurrentCurl,
 }: BookLeafTurnProps) {
+  const underWrapperRef = useRef<HTMLDivElement>(null)
   const underShadowBarRef = useRef<HTMLDivElement>(null)
   const frontWrapperRef = useRef<HTMLDivElement>(null)
   const frontValleyBarRef = useRef<HTMLDivElement>(null)
@@ -54,13 +57,23 @@ export default function BookLeafTurn({
       ? pageW + spineW
       : 0
 
+  const frontLeftInit =
+    isDesktop && direction === 'prev' ? 0 : isDesktop ? pageW + spineW : 0
+
   // Clip-only torn outer-edge classes (NO background-image!) so overlays never draw notebook lines over content!
-  const tornFrontClass =
+  // Front & back of the lifted leaf share one silhouette (mirrored); the under sheet uses its own.
+  const frontTorn = tornVariantClass(getSheetTornVariant(frontSheet))
+  const backTorn = tornVariantClass(getSheetTornVariant(backSheet))
+  const underTorn = tornVariantClass(getSheetTornVariant(underSheet))
+  const tornFrontClass = `${
     isDesktop && direction === 'prev' ? 'torn-clip-left' : 'torn-clip-right'
-  const tornBackClass =
+  } ${frontTorn}`
+  const tornBackClass = `${
     isDesktop && direction === 'prev' ? 'torn-clip-right' : 'torn-clip-left'
-  const tornUnderClass =
+  } ${backTorn}`
+  const tornUnderClass = `${
     isDesktop && direction === 'prev' ? 'torn-clip-left' : 'torn-clip-right'
+  } ${underTorn}`
 
   const applyFrame = useCallback(
     (curl: ComputedCurl) => {
@@ -69,6 +82,7 @@ export default function BookLeafTurn({
         rollRadius,
         frontClipPath,
         backClipPath,
+        underClipPath,
         backMatrixCss,
         flapLift3DCss,
         spreadFoldMid,
@@ -80,6 +94,11 @@ export default function BookLeafTurn({
         overhangUnit,
         hingeX,
       } = curl
+
+      // 0. Under sheet is revealed strictly within the peeled region
+      if (underWrapperRef.current) {
+        underWrapperRef.current.style.clipPath = underClipPath
+      }
 
       // 1. Cast shadow onto newly revealed underlying page (0 at flat endpoints!)
       if (underShadowBarRef.current) {
@@ -211,12 +230,15 @@ export default function BookLeafTurn({
       {/* LAYER 1: Newly Revealed Underlying Page + Moving Crease Cast Shadow */}
       {underSheet !== null && (
         <div
+          ref={underWrapperRef}
           className="absolute top-0 overflow-hidden"
           style={{
             left: `${underSlotLeft}px`,
             width: `${pageW}px`,
             height: `${pageH}px`,
             zIndex: 15,
+            clipPath: 'polygon(0px 0px, 0px 0px, 0px 0px)',
+            willChange: 'clip-path',
           }}
         >
           {underSheet}
@@ -228,6 +250,7 @@ export default function BookLeafTurn({
               style={{
                 height: `${diagLen}px`,
                 transformOrigin: '0px 50%',
+                opacity: 0,
                 willChange: 'transform, opacity',
                 background:
                   'linear-gradient(to right, rgba(16, 11, 6, 0.42) 0%, rgba(16, 11, 6, 0.23) 24%, rgba(16, 11, 6, 0.08) 58%, transparent 100%)',
@@ -242,6 +265,7 @@ export default function BookLeafTurn({
         ref={frontWrapperRef}
         className="absolute left-0 top-0 overflow-hidden"
         style={{
+          transform: `translate3d(${frontLeftInit}px, 0, 0)`,
           width: `${pageW}px`,
           height: `${pageH}px`,
           zIndex: 20,
@@ -256,6 +280,7 @@ export default function BookLeafTurn({
             style={{
               height: `${diagLen}px`,
               transformOrigin: '0px 50%',
+              opacity: 0,
               willChange: 'transform, opacity',
               background:
                 'linear-gradient(to right, rgba(22, 16, 10, 0.17) 0%, rgba(22, 16, 10, 0.06) 45%, transparent 100%)',
@@ -270,7 +295,8 @@ export default function BookLeafTurn({
         className="pointer-events-none absolute inset-0"
         style={{
           zIndex: 42,
-          overflow: isDesktop ? 'visible' : 'hidden',
+          overflow: 'visible',
+          opacity: 0,
           willChange: 'filter, opacity',
         }}
       >
@@ -291,11 +317,9 @@ export default function BookLeafTurn({
       {/* LAYER 4: 3D Perspective-Arched Curled Reverse Sheet (Transparent outer wrapper so torn edges stay jagged!) */}
       <div
         ref={flapFilterRef}
-        className="pointer-events-none absolute top-0 bottom-0"
+        className="pointer-events-none absolute inset-0"
         style={{
-          left: isDesktop ? '0px' : '-20px',
-          right: '0px',
-          overflow: isDesktop ? 'visible' : 'hidden',
+          overflow: 'visible',
           zIndex: 45,
           perspective: '2000px',
           perspectiveOrigin: '50% 50%',
@@ -304,9 +328,8 @@ export default function BookLeafTurn({
       >
         <div
           ref={flap3DRef}
-          className="pointer-events-none absolute top-0 bottom-0 right-0 transform-style-3d"
+          className="pointer-events-none absolute inset-0 transform-style-3d"
           style={{
-            left: isDesktop ? '0px' : '20px',
             transformOrigin: '0 0',
             willChange: 'transform',
           }}
@@ -339,6 +362,7 @@ export default function BookLeafTurn({
                 style={{
                   height: `${diagLen}px`,
                   transformOrigin: '0px 50%',
+                  opacity: 0,
                   willChange: 'transform, opacity',
                   background:
                     'linear-gradient(to right, rgba(42, 30, 18, 0.36) 0%, rgba(238, 230, 214, 0.68) 2.5%, rgba(255, 253, 249, 0.92) 8%, rgba(255, 252, 246, 0.56) 22%, rgba(255, 251, 242, 0.08) 42%, rgba(28, 20, 12, 0.16) 70%, rgba(28, 20, 12, 0.04) 88%, transparent 100%)',

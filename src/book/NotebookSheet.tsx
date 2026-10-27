@@ -1,4 +1,5 @@
 import React from 'react'
+import { getTornVariant, tornVariantClass } from './tornEdges'
 
 export interface NotebookSheetProps {
   side: 'left' | 'right' | 'mobile'
@@ -18,6 +19,9 @@ export default function NotebookSheet({
   children,
   interactive = true,
 }: NotebookSheetProps) {
+  // Unique hand-torn outer edge per physical sheet (5 silhouettes, repeating)
+  const tornClass = tornVariantClass(getTornVariant(pageIndex))
+
   if (side === 'mobile') {
     // Matches the exact PC right-half page geometry, gutter depth, and typography
     // Skip counting blank desktop spread-4 filler page (index 9) so single-page numbers run sequentially
@@ -27,7 +31,7 @@ export default function NotebookSheet({
 
     return (
       <div
-        className={`notebook-page notebook-right relative h-full w-full min-w-0 bg-paper pl-10 pr-6 pt-3.5 pb-5 flex flex-col justify-between overflow-hidden rounded-r-sm ${
+        className={`notebook-page notebook-right relative h-full w-full min-w-0 bg-paper pl-10 pr-6 pt-3.5 pb-5 flex flex-col justify-between overflow-hidden rounded-r-sm ${tornClass} ${
           interactive ? '' : 'pointer-events-none select-none'
         }`}
       >
@@ -63,7 +67,7 @@ export default function NotebookSheet({
   if (side === 'left') {
     return (
       <div
-        className={`notebook-page notebook-left relative h-full w-full min-w-0 bg-paper pl-8 pr-7 pt-3.5 pb-5 flex flex-col justify-between overflow-hidden rounded-l-sm ${
+        className={`notebook-page notebook-left relative h-full w-full min-w-0 bg-paper pl-8 pr-7 pt-3.5 pb-5 flex flex-col justify-between overflow-hidden rounded-l-sm ${tornClass} ${
           interactive ? '' : 'pointer-events-none select-none'
         }`}
       >
@@ -98,7 +102,7 @@ export default function NotebookSheet({
 
   return (
     <div
-      className={`notebook-page notebook-right relative h-full w-full min-w-0 bg-paper pl-10 pr-6 pt-3.5 pb-5 flex flex-col justify-between overflow-hidden rounded-r-sm ${
+      className={`notebook-page notebook-right relative h-full w-full min-w-0 bg-paper pl-10 pr-6 pt-3.5 pb-5 flex flex-col justify-between overflow-hidden rounded-r-sm ${tornClass} ${
         interactive ? '' : 'pointer-events-none select-none'
       }`}
     >

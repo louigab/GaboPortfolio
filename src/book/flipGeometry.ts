@@ -1,5 +1,5 @@
 /**
- * Physical inextensible paper-curl geometry for Diary of Gabo.
+ * Physical inextensible paper-curl geometry for Portfolio of Gabo.
  *
  * Models a real flexible sheet of paper attached along the spine edge:
  * - Enforces inextensibility constraints from both top and bottom spine corners
@@ -42,6 +42,8 @@ export interface ComputedCurl {
   frontClipPath: string
   /** CSS clip-path (curved SVG path) for the peeled reverse sheet */
   backClipPath: string
+  /** CSS clip-path for the revealed underlying page (strictly the peeled region) */
+  underClipPath: string
   /** CSS 2D rigid matrix placing the reverse sheet in spread coordinates */
   backMatrixCss: string
   /** CSS 3D perspective lift transform around the fold line in spread coordinates */
@@ -160,18 +162,34 @@ export function constrainLocalCorner(
  * for click/keyboard turns. Lifts the corner in a graceful upward/inward arc
  * so the fold sweeps diagonally across the page before aligning with the spine.
  */
+/**
+ * Naturally scaled, physical riffle duration based on the number of cascading leaves.
+ * Calibrated to give each individual sheet generous flight time (~480ms-540ms) with a rhythmic,
+ * readable stagger so the cascade feels like authentic luxury paper riffling rather than
+ * a snappy or rushed blur.
+ */
+export function computeRiffleDuration(numLeaves: number): number {
+  if (numLeaves <= 1) return 620
+  if (numLeaves === 2) return 740
+  if (numLeaves === 3) return 880
+  if (numLeaves === 4) return 1000
+  if (numLeaves === 5) return 1120
+  return Math.min(1380, 1120 + (numLeaves - 5) * 80)
+}
+
 export function sampleNaturalTurnCorner(
   W: number,
   H: number,
   corner: Corner,
-  t: number
+  t: number,
+  archAmp?: number
 ): Vec {
   const u = clamp(t, 0, 1)
   const theta = Math.PI * u
   const x = W * Math.cos(theta)
   // Asymmetric arc: rises briskly during lift-off, flattens smoothly on landing
   const liftBell = Math.sin(theta) * Math.pow(1 - u * 0.35, 0.55)
-  const archAmplitude = Math.min(H * 0.24, 142)
+  const archAmplitude = archAmp ?? Math.min(H * 0.24, 142)
   const y =
     corner === 'bottom'
       ? H - archAmplitude * liftBell
@@ -355,6 +373,7 @@ export function solveBookCurl(params: {
   if (!mirrorHoriz) {
     // Sheet hinges on its LEFT edge (desktop 'next' OR mobile 'next'/'prev')
     const frontClipPath = formatPolygonCss(canonicalUnpeeled)
+    const underClipPath = formatPolygonCss(canonicalPeeled)
 
     const foldMidCanonical: Vec =
       e1 && e2
@@ -417,6 +436,7 @@ export function solveBookCurl(params: {
       rollRadius,
       frontClipPath,
       backClipPath,
+      underClipPath,
       backMatrixCss: matToCss(backMat),
       flapLift3DCss,
       spreadFoldMid,
@@ -434,6 +454,8 @@ export function solveBookCurl(params: {
     // Map canonical x in [0..W] -> left-sheet u = W - x
     const frontPolyLeft = canonicalUnpeeled.map((pt) => ({ x: W - pt.x, y: pt.y }))
     const frontClipPath = formatPolygonCss(frontPolyLeft)
+    const underPolyLeft = canonicalPeeled.map((pt) => ({ x: W - pt.x, y: pt.y }))
+    const underClipPath = formatPolygonCss(underPolyLeft)
 
     const foldMidCanonical: Vec =
       e1 && e2
@@ -498,6 +520,7 @@ export function solveBookCurl(params: {
       rollRadius,
       frontClipPath,
       backClipPath,
+      underClipPath,
       backMatrixCss: matToCss(backMat),
       flapLift3DCss,
       spreadFoldMid,

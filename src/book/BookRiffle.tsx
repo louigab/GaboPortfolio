@@ -3,9 +3,11 @@ import {
   type Corner,
   type TurnDirection,
   clamp,
+  computeRiffleDuration,
   sampleNaturalTurnCorner,
   solveBookCurl,
 } from './flipGeometry'
+import { getSheetTornVariant, tornVariantClass } from './tornEdges'
 
 export interface BookRiffleLeaf {
   frontSheet: React.ReactNode
@@ -23,6 +25,7 @@ export interface BookRiffleProps {
   leaves: BookRiffleLeaf[]
   underSheet: React.ReactNode | null
   onComplete: () => void
+  duration?: number
 }
 
 interface SingleLeafRefs {
@@ -45,6 +48,7 @@ export default function BookRiffle({
   leaves,
   underSheet,
   onComplete,
+  duration,
 }: BookRiffleProps) {
   const onCompleteRef = useRef(onComplete)
   useEffect(() => {
@@ -74,12 +78,13 @@ export default function BookRiffle({
       ? pageW + spineW
       : 0
 
-  const tornFrontClass =
+  const tornFrontSide =
     isDesktop && direction === 'prev' ? 'torn-clip-left' : 'torn-clip-right'
-  const tornBackClass =
+  const tornBackSide =
     isDesktop && direction === 'prev' ? 'torn-clip-right' : 'torn-clip-left'
-  const tornUnderClass =
+  const tornUnderClass = `${
     isDesktop && direction === 'prev' ? 'torn-clip-left' : 'torn-clip-right'
+  } ${tornVariantClass(getSheetTornVariant(underSheet))}`
 
   useLayoutEffect(() => {
     const reducedMotion =
@@ -92,15 +97,23 @@ export default function BookRiffle({
     }
 
     const N = leaves.length
-    // Responsive, brisk riffle duration scaling: 460ms for 2 leaves up to 640ms for 5+
-    const totalDuration =
-      N <= 2 ? 460 : N === 3 ? 520 : N === 4 ? 580 : 640
+    // Natural physical duration scaling: each leaf gets generous flight time (~480ms - 540ms)
+    const totalDuration = duration ?? computeRiffleDuration(N)
 
-    // Individual leaf sweep window within [0..1]
-    const leafDurationFrac = clamp(0.74 - (N - 2) * 0.055, 0.44, 0.74)
-    const stagger = N > 1 ? (1 - leafDurationFrac) / (N - 1) : 0
+    // Small settle window (35-45ms) where the final leaf reaches flat rest
+    // before BookRiffle unmounts, guaranteeing a seamless hand-off to the static page.
+    const settleFrac = 0.04
+    const availableFrac = 1 - settleFrac
+
+    // Target flight duration per leaf: gives each leaf ~480ms - 540ms of flight time
+    const targetLeafMs = Math.max(450, Math.min(540, totalDuration * 0.72))
+    const leafDurationFrac = clamp(targetLeafMs / totalDuration, 0.35, availableFrac)
+    const stagger = N > 1 ? (availableFrac - leafDurationFrac) / (N - 1) : 0
 
     const corner: Corner = 'bottom'
+    // Slightly gentler corner arch amplitude for multi-leaf riffles keeps cascading leaves
+    // coherent and graceful without chaotic flutter.
+    const riffleArchAmp = Math.min(pageH * 0.16, 96)
     let startTime = 0
 
     const applyLeafProgress = (i: number, progress: number) => {
@@ -168,7 +181,7 @@ export default function BookRiffle({
       }
 
       // Mid-flight peeling state
-      const canonicalP = sampleNaturalTurnCorner(pageW, pageH, corner, progress)
+      const canonicalP = sampleNaturalTurnCorner(pageW, pageH, corner, progress, riffleArchAmp)
       const curl = solveBookCurl({
         W: pageW,
         H: pageH,
@@ -257,13 +270,9 @@ export default function BookRiffle({
           localP = 1
         } else {
           const raw = (globalT - startT) / leafDurationFrac
-          // Crisp, continuous flick curve for intermediate leaves; smooth air-cushioned landing for final leaf
-          if (i === N - 1) {
-            localP = clamp(raw * raw * (3 - 2 * raw), 0, 1)
-          } else {
-            // Snappy energetic page release
-            localP = clamp(raw * raw * raw * (raw * (raw * 6 - 15) + 10), 0, 1)
-          }
+          // Silky smooth physical paper curve: zero initial jerk, fluid transit across the spine,
+          // and a soft air-cushioned settle onto the destination stack for all cascading leaves
+          localP = clamp(raw * raw * (3 - 2 * raw), 0, 1)
         }
 
         applyLeafProgress(i, localP)
@@ -285,7 +294,7 @@ export default function BookRiffle({
         rafRef.current = null
       }
     }
-  }, [direction, isDesktop, leaves.length, pageH, pageW, spineW])
+  }, [direction, duration, isDesktop, leaves.length, pageH, pageW, spineW])
 
   return (
     <div
@@ -324,6 +333,9 @@ export default function BookRiffle({
         //   -> flapFilter zIndex = 35 + i * 4.
         const frontZ = 28 - i * 2
         const flapZ = 35 + i * 4
+        // Each cascading leaf keeps its own unique torn silhouette (front & back mirror-matched)
+        const tornFrontClass = `${tornFrontSide} ${tornVariantClass(getSheetTornVariant(leaf.frontSheet))}`
+        const tornBackClass = `${tornBackSide} ${tornVariantClass(getSheetTornVariant(leaf.backSheet))}`
 
         return (
           <React.Fragment key={i}>
@@ -352,7 +364,7 @@ export default function BookRiffle({
               className="pointer-events-none absolute inset-0"
               style={{
                 zIndex: flapZ - 1,
-                overflow: isDesktop ? 'visible' : 'hidden',
+                overflow: 'visible',
                 willChange: 'filter, opacity',
                 opacity: 0,
               }}
@@ -378,11 +390,9 @@ export default function BookRiffle({
               ref={(el) => {
                 getLeafRef(i).flapFilter = el
               }}
-              className="pointer-events-none absolute top-0 bottom-0"
+              className="pointer-events-none absolute inset-0"
               style={{
-                left: isDesktop ? '0px' : '-20px',
-                right: '0px',
-                overflow: isDesktop ? 'visible' : 'hidden',
+                overflow: 'visible',
                 zIndex: flapZ,
                 perspective: '2000px',
                 perspectiveOrigin: '50% 50%',
@@ -394,9 +404,8 @@ export default function BookRiffle({
                 ref={(el) => {
                   getLeafRef(i).flap3D = el
                 }}
-                className="pointer-events-none absolute top-0 bottom-0 right-0 transform-style-3d"
+                className="pointer-events-none absolute inset-0 transform-style-3d"
                 style={{
-                  left: isDesktop ? '0px' : '20px',
                   transformOrigin: '0 0',
                   willChange: 'transform',
                 }}
