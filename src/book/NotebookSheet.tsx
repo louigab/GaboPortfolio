@@ -27,7 +27,7 @@ export default function NotebookSheet({
     // Skip counting blank desktop spread-4 filler page (index 9) so single-page numbers run sequentially
     const displayPage = pageIndex > 9 ? pageIndex : pageIndex + 1
     const runningHeader =
-      pageIndex % 2 === 0 ? 'DIARY OF GABO' : 'LOUIS GABRIEL D. DAMONDAMON'
+      pageIndex % 2 === 0 ? 'PORTFOLIO OF GABO' : 'LOUIS GABRIEL D. DAMONDAMON'
 
     return (
       <div
@@ -92,7 +92,7 @@ export default function NotebookSheet({
 
         <div className="flex items-center justify-between text-ink-soft hand text-sm font-bold mb-0.5 shrink-0 select-none relative z-10">
           <span>p. {pageIndex + 1}</span>
-          <span>DIARY OF GABO</span>
+          <span>PORTFOLIO OF GABO</span>
         </div>
 
         <div className="flex-1 min-h-0 relative z-10">{children}</div>

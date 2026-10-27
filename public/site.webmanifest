@@ -1,6 +1,6 @@
 {
-  "name": "Diary of Gabo · Developer Portfolio",
-  "short_name": "Diary of Gabo",
+  "name": "Portfolio of Gabo",
+  "short_name": "Portfolio of Gabo",
   "description": "Developer portfolio of Louis Gabriel D. Damondamon (Gabo)",
   "start_url": "/",
   "display": "standalone",
@@ -21,6 +21,15 @@
       "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/preview/linkpreview.jpg",
+      "sizes": "1200x634",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Portfolio of Gabo"
     }
   ]
 }

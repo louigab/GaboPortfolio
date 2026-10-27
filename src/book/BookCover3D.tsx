@@ -242,19 +242,19 @@ function CoverArtwork() {
       </div>
 
       {/* 8. MAIN COVER CONTENT COLUMN */}
-      <div className="relative z-20 h-full pl-[58px] pr-[20px] pt-[18px] pb-[18px] flex flex-col items-center justify-between pointer-events-none select-none">
-        {/* TOP TITLE LOCKUP: DEV LOG / crossed-out DIARY / of / GABO / A DEVELOPER PORTFOLIO */}
+      <div className="relative z-20 h-full pl-[58px] pr-[20px] pt-[48px] pb-[18px] flex flex-col items-center justify-between pointer-events-none select-none">
+        {/* TOP TITLE LOCKUP: PORTFOLIO scrawled over crossed-out DIARY / of / GABO */}
         <div className="w-full flex flex-col items-center text-center">
-          {/* 'DEV LOG' scrawled cleanly above crossed-out serif 'DIARY' */}
+          {/* 'PORTFOLIO' scrawled cleanly above crossed-out serif 'DIARY' */}
           <div className="relative inline-block pt-[26px]">
-            {/* Handwritten red 'DEV LOG' */}
+            {/* Handwritten red 'PORTFOLIO' */}
             <span
               className="marker absolute top-0 left-[53%] -translate-x-1/2 -rotate-4 text-[30px] leading-none tracking-[0.06em] text-[#e0262f] whitespace-nowrap z-20"
               style={{
                 textShadow: '0 2px 5px rgba(0,0,0,0.85)',
               }}
             >
-              DEV LOG
+              PORTFOLIO
             </span>
 
             {/* Red marker splatter flecks */}
@@ -319,7 +319,7 @@ function CoverArtwork() {
             of
           </span>
 
-          {/* 'GABO' in White Brush Marker with Thick Crimson Paint Halo + Paint Scuffs */}
+          {/* 'GABO' in White Brush Marker with Thick Crimson Paint Halo */}
           <div className="relative -mt-1">
             <h1
               className="marker uppercase text-[72px] leading-[0.94] tracking-[0.03em] text-white select-none"
@@ -332,27 +332,7 @@ function CoverArtwork() {
             >
               GABO
             </h1>
-            {/* Chipped paint scuffs inside white letters */}
-            <svg
-              className="pointer-events-none absolute inset-0 w-full h-full"
-              viewBox="0 0 240 70"
-              aria-hidden="true"
-            >
-              <line x1="48" y1="26" x2="68" y2="25" stroke="rgba(200, 31, 39, 0.45)" strokeWidth="1.6" strokeLinecap="round" />
-              <circle cx="58" cy="38" r="1.2" fill="rgba(200, 31, 39, 0.5)" />
-              <line x1="135" y1="42" x2="162" y2="40" stroke="rgba(200, 31, 39, 0.5)" strokeWidth="1.6" strokeLinecap="round" />
-              <circle cx="148" cy="32" r="1.1" fill="rgba(200, 31, 39, 0.55)" />
-              <circle cx="188" cy="36" r="1.3" fill="rgba(200, 31, 39, 0.5)" />
-            </svg>
           </div>
-
-          {/* 'A DEVELOPER LOGBOOK' */}
-          <p
-            className="hand uppercase font-extrabold text-[23px] leading-tight tracking-[0.05em] text-[#f4f1ea] mt-2 mb-0"
-            style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
-          >
-            A DEVELOPER LOGBOOK
-          </p>
         </div>
 
         {/* CENTER/BOTTOM TAPED TORN RULED NOTEBOOK PAPER SCRAP */}
@@ -476,7 +456,7 @@ function CoverArtwork() {
               <p
                 className="text-center text-[20.5px] font-bold leading-none tracking-tight pt-0.5 pb-1 -rotate-1"
                 style={{
-                  fontFamily: '"Caveat", "Patrick Hand", cursive',
+                  fontFamily: 'var(--font-display)',
                   color: '#1b3f99',
                 }}
               >
@@ -1104,9 +1084,9 @@ function WrappingTapeLock({
             {/* Pure handwriting text */}
             <div className="relative -top-1 flex flex-col select-none rotate-[-2deg]">
               <span
-                className="hand font-bold text-[27px] tracking-wide text-[#c9252c] leading-none whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]"
+                className="font-bold text-[27px] tracking-wide text-[#c9252c] leading-none whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]"
                 style={{
-                  fontFamily: '"Caveat", "Patrick Hand", cursive',
+                  fontFamily: 'var(--font-display)',
                 }}
               >
                 click lock to open!
@@ -1128,9 +1108,9 @@ function WrappingTapeLock({
             {/* Handwritten scrawled text directly on dark cover */}
             <div className="rotate-[-3deg] filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
               <span
-                className="hand font-bold text-[24px] tracking-wide text-[#ff4d56] leading-none whitespace-nowrap"
+                className="font-bold text-[24px] tracking-wide text-[#ff4d56] leading-none whitespace-nowrap"
                 style={{
-                  fontFamily: '"Caveat", "Patrick Hand", cursive',
+                  fontFamily: 'var(--font-display)',
                   textShadow: '0 2px 4px #000, 0 0 8px rgba(255,77,86,0.7)',
                 }}
               >

@@ -78,7 +78,7 @@ export default function Hero({
         <div className="flex items-center gap-1.5">
           <DoodleCrown className="w-7 h-5.5 shrink-0" />
           <span className="hand text-[1.05rem] text-ink font-normal tracking-tight leading-none">
-            Personal Developer Logbook
+            Personal Developer Portfolio
           </span>
         </div>
         <h1 className="hand text-[5.9rem] leading-[0.76] font-extrabold text-ink tracking-tight mt-0.5 ml-8">

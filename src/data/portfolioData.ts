@@ -463,7 +463,7 @@ export const SPREADS_META: SpreadMeta[] = [
   {
     spreadIndex: 0,
     tabLabel: 'Intro and About Me',
-    leftPageTitle: 'Intro Logbook',
+    leftPageTitle: 'Intro Portfolio',
     rightPageTitle: 'About Louis (Gabo)',
     mascotSpeech: 'Grab a page corner or swipe to flip pages!',
   },

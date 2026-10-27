@@ -116,7 +116,7 @@ export default function GaboMascot({
         title="Click Gabo for a diary note!"
       >
         <span className="hand text-xl font-bold leading-none text-ink whitespace-nowrap">
-          diary of gabo
+          portfolio of gabo
         </span>
       </button>
     )
