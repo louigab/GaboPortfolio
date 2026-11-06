@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useContext, useLayoutEffect, useRef, useState } from 'react'
+import { SheetMotionContext } from '../book/SheetMotionContext'
 import gsap from 'gsap'
 
 interface GaboMascotProps {
@@ -33,6 +34,8 @@ export default function GaboMascot({
   isDesktop = true,
 }: GaboMascotProps) {
   const bonusQuips = isDesktop ? BONUS_QUIPS_DESKTOP : BONUS_QUIPS_MOBILE
+  const animate = useContext(SheetMotionContext)
+  const reactionRef = useRef<HTMLButtonElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const bubbleRef = useRef<HTMLDivElement>(null)
   const [customQuip, setCustomQuip] = useState<{
@@ -48,41 +51,40 @@ export default function GaboMascot({
       ? customQuip.index
       : null
 
-  // Stepped "doodle boil" animation so the drawing feels alive like a flipbook
-  useEffect(() => {
-    if (!imgRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const ctx = gsap.context(() => {
+  // Idle rotation and reactions use different elements, so tweens cannot fight.
+  useLayoutEffect(() => {
+    if (!animate || !imgRef.current) return
+    const context = gsap.matchMedia()
+    context.add('(prefers-reduced-motion: no-preference)', () => {
       gsap.to(imgRef.current, {
-        rotation: variant === 'hero' ? 1.1 : 2.0,
-        y: -2,
-        duration: 0.65,
+        rotation: variant === 'hero' ? .6 : 1,
+        duration: 1.2,
         repeat: -1,
         yoyo: true,
-        ease: 'steps(2)',
+        ease: 'sine.inOut',
+        transformOrigin: '50% 100%',
       })
     })
-    return () => ctx.revert()
-  }, [variant])
+    return () => context.revert()
+  }, [variant, animate])
 
-  // React with a quick hop when a page flips
-  useEffect(() => {
-    if (flipTrigger === 0 && activeQuipIndex === null) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    if (imgRef.current) {
-      gsap.fromTo(
-        imgRef.current,
-        { scale: 0.96, y: 5 },
-        { scale: 1, y: 0, duration: 0.28, ease: 'cubic-bezier(0.23, 1, 0.32, 1)' }
-      )
-    }
-    if (bubbleRef.current) {
-      gsap.fromTo(
-        bubbleRef.current,
-        { scale: 0.95, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.24, ease: 'cubic-bezier(0.23, 1, 0.32, 1)' }
-      )
-    }
-  }, [flipTrigger, activeQuipIndex])
+  useLayoutEffect(() => {
+    if (!animate || (flipTrigger === 0 && activeQuipIndex === null)) return
+    const context = gsap.matchMedia()
+    context.add('(prefers-reduced-motion: no-preference)', () => {
+      if (reactionRef.current) {
+        gsap.fromTo(reactionRef.current,
+          { scale: .97, y: 3 },
+          { scale: 1, y: 0, duration: .28, ease: 'power2.out', overwrite: 'auto' })
+      }
+      if (bubbleRef.current) {
+        gsap.fromTo(bubbleRef.current,
+          { scale: .95, opacity: 0 },
+          { scale: 1, opacity: 1, duration: .24, ease: 'power2.out' })
+      }
+    })
+    return () => context.revert()
+  }, [flipTrigger, activeQuipIndex, animate])
 
   const handleMascotClick = () => {
     setCustomQuip((prev) => {
@@ -96,13 +98,7 @@ export default function GaboMascot({
         forTrigger: flipTrigger,
       }
     })
-    if (imgRef.current && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      gsap.fromTo(
-        imgRef.current,
-        { scale: 0.94, rotation: -3.5 },
-        { scale: 1, rotation: 1.2, duration: 0.25, ease: 'back.out(2)' }
-      )
-    }
+
   }
 
   const activeSpeech = activeQuipIndex !== null ? bonusQuips[activeQuipIndex] : speech
@@ -127,6 +123,7 @@ export default function GaboMascot({
       <div className={`relative inline-flex flex-col items-center select-none ${className}`}>
         <button
           type="button"
+          ref={reactionRef}
           onClick={handleMascotClick}
           className="relative cursor-pointer group focus-visible:outline-2 bg-transparent border-0 p-0"
           aria-label="Click Gabo character for a fun diary comment"
@@ -136,7 +133,7 @@ export default function GaboMascot({
             ref={imgRef}
             src="/images/character/gaboCharacter.png"
             alt="Drawn Wimpy Kid style illustration of Gabo with hands in pockets"
-            className="h-[330px] w-auto object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
+            className="block h-[330px] w-auto object-contain"
           />
         </button>
 

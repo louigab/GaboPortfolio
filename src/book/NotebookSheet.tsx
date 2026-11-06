@@ -1,4 +1,5 @@
 import React from 'react'
+import { SheetMotionContext } from './SheetMotionContext'
 import { getTornVariant, tornVariantClass } from './tornEdges'
 
 export interface NotebookSheetProps {
@@ -59,7 +60,7 @@ export default function NotebookSheet({
           <span>p. {displayPage}</span>
         </div>
 
-        <div className="flex-1 min-h-0 relative z-10">{children}</div>
+        <div className="flex-1 min-h-0 relative z-10"><SheetMotionContext value={interactive}>{children}</SheetMotionContext></div>
       </div>
     )
   }
@@ -95,7 +96,7 @@ export default function NotebookSheet({
           <span>PORTFOLIO OF GABO</span>
         </div>
 
-        <div className="flex-1 min-h-0 relative z-10">{children}</div>
+        <div className="flex-1 min-h-0 relative z-10"><SheetMotionContext value={interactive}>{children}</SheetMotionContext></div>
       </div>
     )
   }
@@ -130,7 +131,7 @@ export default function NotebookSheet({
         <span>p. {pageIndex + 1}</span>
       </div>
 
-      <div className="flex-1 min-h-0 relative z-10">{children}</div>
+      <div className="flex-1 min-h-0 relative z-10"><SheetMotionContext value={interactive}>{children}</SheetMotionContext></div>
     </div>
   )
 }

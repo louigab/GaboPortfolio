@@ -1,3 +1,4 @@
+import { PAPER_ROLL_LIGHT, paperRollStyle } from './paperLighting'
 import React, { useCallback, useLayoutEffect, useRef } from 'react'
 import type { ComputedCurl, TurnDirection } from './flipGeometry'
 import type { CurlFrameListener } from './usePageTurn'
@@ -79,7 +80,6 @@ export default function BookLeafTurn({
     (curl: ComputedCurl) => {
       const {
         arch,
-        rollRadius,
         frontClipPath,
         backClipPath,
         underClipPath,
@@ -88,8 +88,6 @@ export default function BookLeafTurn({
         spreadFoldMid,
         frontLocalMid,
         frontLocalValleyAngleRad,
-        backLocalMid,
-        backLocalRollAngleRad,
         underShadowAngleRad,
         overhangUnit,
         hingeX,
@@ -105,7 +103,7 @@ export default function BookLeafTurn({
         const localMidX = spreadFoldMid.x - underSlotLeft
         const localMidY = spreadFoldMid.y
         const reach = Math.round(14 + 108 * arch)
-        const opacity = Math.min(1, Math.pow(arch, 0.72) * 0.92)
+        const opacity = Math.min(1, Math.pow(arch, 0.72) * 0.62)
         const el = underShadowBarRef.current
         el.style.width = `${reach}px`
         el.style.opacity = `${Math.round(opacity * 1000) / 1000}`
@@ -127,7 +125,7 @@ export default function BookLeafTurn({
         const valleyW = Math.round(12 + 48 * arch)
         const el = frontValleyBarRef.current
         el.style.width = `${valleyW}px`
-        el.style.opacity = `${Math.round(arch * 0.8 * 1000) / 1000}`
+        el.style.opacity = `${Math.round(arch * 0.48 * 1000) / 1000}`
         el.style.transform = `translate3d(${
           Math.round(frontLocalMid.x * 10) / 10
         }px, ${
@@ -154,18 +152,6 @@ export default function BookLeafTurn({
       }
 
       // 4. 3D perspective-arched curled reverse flap + crisp jagged-edge paper-thickness rim shadow
-      if (flapFilterRef.current) {
-        if (arch > 0.008) {
-          const rimDist = 1.4 + 1.8 * arch
-          const rdx = Math.round(overhangUnit.x * rimDist * 10) / 10
-          const rdy = Math.round((overhangUnit.y * rimDist + 0.6 * arch) * 10) / 10
-          const rBlur = Math.round((0.8 + 1.0 * arch) * 10) / 10
-          const rAlpha = Math.round(Math.pow(arch, 0.62) * 0.4 * 1000) / 1000
-          flapFilterRef.current.style.filter = `drop-shadow(${rdx}px ${rdy}px ${rBlur}px rgba(17, 12, 8, ${rAlpha}))`
-        } else {
-          flapFilterRef.current.style.filter = 'none'
-        }
-      }
 
       if (flap3DRef.current) {
         flap3DRef.current.style.transform = flapLift3DCss
@@ -186,19 +172,7 @@ export default function BookLeafTurn({
 
       // Cylindrical roll highlight & concave belly shadow also fade strictly to 0.000 at arch = 0!
       if (backRollBarRef.current) {
-        const cylSpan = Math.round(24 + rollRadius * 1.55)
-        const bulgeOffset = Math.round(12 * arch)
-        const lightStrength = Math.round(Math.pow(arch, 0.65) * 0.94 * 1000) / 1000
-        const br = backRollBarRef.current
-        br.style.width = `${cylSpan}px`
-        br.style.opacity = `${lightStrength}`
-        br.style.transform = `translate3d(${
-          Math.round(backLocalMid.x * 10) / 10
-        }px, ${
-          Math.round((backLocalMid.y - diagLen * 0.5) * 10) / 10
-        }px, 0) rotate(${
-          Math.round(backLocalRollAngleRad * 10000) / 10000
-        }rad) translate3d(${-bulgeOffset}px, 0, 0)`
+        Object.assign(backRollBarRef.current.style, paperRollStyle(curl, diagLen))
       }
     },
     [diagLen, direction, isDesktop, pageW, underSlotLeft]
@@ -323,7 +297,6 @@ export default function BookLeafTurn({
           zIndex: 45,
           perspective: '2000px',
           perspectiveOrigin: '50% 50%',
-          willChange: 'filter',
         }}
       >
         <div
@@ -364,8 +337,7 @@ export default function BookLeafTurn({
                   transformOrigin: '0px 50%',
                   opacity: 0,
                   willChange: 'transform, opacity',
-                  background:
-                    'linear-gradient(to right, rgba(42, 30, 18, 0.36) 0%, rgba(238, 230, 214, 0.68) 2.5%, rgba(255, 253, 249, 0.92) 8%, rgba(255, 252, 246, 0.56) 22%, rgba(255, 251, 242, 0.08) 42%, rgba(28, 20, 12, 0.16) 70%, rgba(28, 20, 12, 0.04) 88%, transparent 100%)',
+                  background: PAPER_ROLL_LIGHT,
                 }}
               />
             </div>

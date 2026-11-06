@@ -7,6 +7,7 @@ import React, {
 } from 'react'
 import { DoodleTape } from '../components/InkDoodles'
 import { clamp } from './flipGeometry'
+import { coverSwing } from './coverMotion.mjs'
 
 export interface BookCover3DProps {
   isOpen: boolean
@@ -23,7 +24,7 @@ export interface BookCover3DProps {
 
 function CoverArtwork() {
   return (
-    <div className="cover-exterior relative w-full h-full rounded-r-[14px] rounded-l-[3px] overflow-visible select-none bg-[#151414] text-[#f5f2eb] shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.14),inset_-3px_-3px_14px_rgba(0,0,0,0.88)]">
+    <div className="cover-artwork cover-exterior relative w-full h-full rounded-r-[14px] rounded-l-[3px] overflow-visible select-none bg-[#151414] text-[#f5f2eb] shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.14),inset_-3px_-3px_14px_rgba(0,0,0,0.88)]">
       {/* SVG Global Definitions for Rugged Texture Patterns */}
       <svg className="absolute w-0 h-0 pointer-events-none" aria-hidden="true">
         <defs>
@@ -57,15 +58,9 @@ function CoverArtwork() {
         aria-hidden="true"
       />
 
-      {/* 2. TACTILE LEATHERETTE PEBBLE-GRAIN OVERLAY */}
-      <div
-        className="pointer-events-none absolute inset-0 rounded-r-[14px] rounded-l-[3px] overflow-hidden opacity-95"
-        style={{
-          backgroundImage:
-            "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%228%22 height=%228%22><circle cx=%221.5%22 cy=%221.5%22 r=%220.85%22 fill=%22rgba(255,255,255,0.04)%22/><circle cx=%225.5%22 cy=%222%22 r=%220.7%22 fill=%22rgba(0,0,0,0.24)%22/><circle cx=%222.5%22 cy=%225.5%22 r=%220.75%22 fill=%22rgba(0,0,0,0.2)%22/><circle cx=%226.5%22 cy=%226%22 r=%220.9%22 fill=%22rgba(255,255,255,0.035)%22/><circle cx=%224%22 cy=%224%22 r=%220.6%22 fill=%22rgba(255,255,255,0.025)%22/><circle cx=%220.5%22 cy=%224.5%22 r=%220.5%22 fill=%22rgba(0,0,0,0.18)%22/></svg>')",
-        }}
-        aria-hidden="true"
-      />
+      {/* Fine woven bookcloth, on the same flat surface as the printed artwork. */}
+      <div className="pointer-events-none absolute inset-0 rounded-r-[14px] rounded-l-[3px] opacity-75"
+        style={{ backgroundImage: "url('/images/materials/black-bookcloth.webp')", backgroundSize: '360px 360px' }} aria-hidden="true" />
 
       {/* 3. FORE-EDGE WEAR & CHAFING HIGHLIGHT (Physical rim abrasion along outer edge) */}
       <div
@@ -326,8 +321,7 @@ function CoverArtwork() {
               style={{
                 paintOrder: 'stroke fill',
                 WebkitTextStroke: '12px #c81f27',
-                filter:
-                  'drop-shadow(0px 2px 0px #851217) drop-shadow(0px 6px 12px rgba(0,0,0,0.65))',
+                textShadow: '0 2px 0 #851217, 0 6px 12px rgba(0,0,0,0.65)',
               }}
             >
               GABO
@@ -523,9 +517,8 @@ function LockTapeFrontSvg({
         </linearGradient>
 
         {/* Fine Cotton/Poly Scrim Fabric Weave (Authentic micro cloth weave) */}
-        <pattern id={weavePatternId} width="3" height="3" patternUnits="userSpaceOnUse">
-          <path d="M 0 1.5 H 3 M 1.5 0 V 3" stroke="rgba(255,255,255,0.08)" strokeWidth="0.45" />
-          <circle cx="1.5" cy="1.5" r="0.35" fill="rgba(0,0,0,0.07)" />
+        <pattern id={weavePatternId} width="68" height="78" patternUnits="userSpaceOnUse">
+          <image href="/images/materials/black-bookcloth.webp" width="68" height="78" preserveAspectRatio="xMidYMid slice" opacity=".4" />
         </pattern>
 
         {/* Fore-edge Cylindrical Roll Shadow at right edge x = 68 (Gentle wrap, not charred) */}
@@ -708,9 +701,8 @@ function LockTapeBackSvg({ idPrefix = 'lockBack' }: { idPrefix?: string }) {
           <stop offset="100%" stopColor="rgba(0,0,0,0.12)" />
         </linearGradient>
 
-        <pattern id={backWeaveId} width="3" height="3" patternUnits="userSpaceOnUse">
-          <path d="M 0 1.5 H 3 M 1.5 0 V 3" stroke="rgba(255,255,255,0.08)" strokeWidth="0.45" />
-          <circle cx="1.5" cy="1.5" r="0.35" fill="rgba(0,0,0,0.07)" />
+        <pattern id={backWeaveId} width="68" height="78" patternUnits="userSpaceOnUse">
+          <image href="/images/materials/paper-fibers.png" width="68" height="78" preserveAspectRatio="xMidYMid slice" />
         </pattern>
       </defs>
 
@@ -1191,7 +1183,7 @@ export default function BookCover3D({
       const unwrapT = clamp(p / 0.28, 0, 1)
 
       // Front cover swing phase: 24% to 100% of timeline swings the front cover from 0deg to -180deg
-      const swingT = clamp((p - 0.24) / 0.76, 0, 1)
+      const swingT = coverSwing(p)
       const angleDeg = -180 * swingT
       // Front board sits +10px above right page stack when closed, settling to 0px when open on left
       const zLift = Math.round((1 - swingT) * 10 * 100) / 100
@@ -1366,7 +1358,7 @@ export default function BookCover3D({
       }
     }
 
-    const duration = isOpen ? 1780 : 1480
+    const duration = isOpen ? 1150 : 950
     const startTime = performance.now()
 
     const step = (now: number) => {
@@ -1448,9 +1440,13 @@ export default function BookCover3D({
         {/* EXTERIOR FRONT HARDCOVER FACE (0deg) */}
         <div
           ref={exteriorFaceRef}
-          className="cover-exterior absolute inset-0 transform-style-3d"
+          className="cover-exterior absolute inset-0"
           style={{
             transform: 'translateZ(2.5px)',
+            // Artwork is one printed surface, not independent intersecting 3D planes.
+            transformStyle: 'flat',
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
           }}
         >
           <CoverArtwork />
@@ -1473,6 +1469,9 @@ export default function BookCover3D({
           className="cover-interior absolute inset-0 overflow-hidden rounded-l-xl bg-ink"
           style={{
             transform: 'rotateY(180deg) translateZ(2.5px)',
+            transformStyle: 'flat',
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
             visibility: hideSettledHinge ? 'hidden' : undefined,
           }}
         >

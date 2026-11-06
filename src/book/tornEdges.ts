@@ -1,4 +1,5 @@
 import React from 'react'
+import { sheetForPage } from './leafState'
 
 /** Number of unique hand-torn paper silhouettes; the pattern repeats every N sheets. */
 export const TORN_VARIANT_COUNT = 5
@@ -14,8 +15,7 @@ export const TORN_VARIANT_COUNT = 5
  * - Sheet 6: Page 12 (bound to right back cover)
  */
 export function getSheetIndex(pageIndex: number): number {
-  if (pageIndex <= 0) return 0
-  return Math.floor((pageIndex + 1) / 2)
+  return sheetForPage(pageIndex)
 }
 
 /**

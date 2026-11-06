@@ -1,3 +1,4 @@
+import { PAPER_ROLL_LIGHT, paperRollStyle } from './paperLighting'
 import React, { useEffect, useLayoutEffect, useRef } from 'react'
 import {
   type Corner,
@@ -29,6 +30,7 @@ export interface BookRiffleProps {
 }
 
 interface SingleLeafRefs {
+  rollLight: HTMLDivElement | null
   frontWrapper: HTMLDivElement | null
   overhangBlur: HTMLDivElement | null
   overhangShadow: HTMLDivElement | null
@@ -59,6 +61,7 @@ export default function BookRiffle({
   const getLeafRef = (i: number): SingleLeafRefs => {
     if (!leafRefs.current[i]) {
       leafRefs.current[i] = {
+        rollLight: null,
         frontWrapper: null,
         overhangBlur: null,
         overhangShadow: null,
@@ -121,6 +124,7 @@ export default function BookRiffle({
       if (!refs) return
 
       const {
+        rollLight,
         frontWrapper,
         overhangBlur,
         overhangShadow,
@@ -129,6 +133,7 @@ export default function BookRiffle({
         backWrapper,
       } = refs
 
+      if (rollLight && (progress <= 0.0001 || progress >= 0.9999)) rollLight.style.opacity = '0'
       if (progress <= 0.0001) {
         // Unpeeled state: flat on unpeeled stack
         if (frontWrapper) {
@@ -192,6 +197,8 @@ export default function BookRiffle({
         canonicalP,
       })
 
+      if (rollLight) Object.assign(rollLight.style, paperRollStyle(curl, Math.ceil(Math.hypot(pageW, pageH) * 1.6)))
+
       const {
         arch,
         frontClipPath,
@@ -227,15 +234,7 @@ export default function BookRiffle({
       if (flapFilter) {
         flapFilter.style.opacity = '1'
         flapFilter.style.visibility = 'visible'
-        if (arch > 0.01) {
-          const rimDist = 1.2 + 1.6 * arch
-          const rdx = Math.round(overhangUnit.x * rimDist * 10) / 10
-          const rdy = Math.round((overhangUnit.y * rimDist + 0.5 * arch) * 10) / 10
-          const rAlpha = Math.round(Math.pow(arch, 0.6) * 0.35 * 1000) / 1000
-          flapFilter.style.filter = `drop-shadow(${rdx}px ${rdy}px 2px rgba(17, 12, 8, ${rAlpha}))`
-        } else {
-          flapFilter.style.filter = 'none'
-        }
+
       }
 
       if (flap3D) {
@@ -328,11 +327,11 @@ export default function BookRiffle({
       {leaves.map((leaf, i) => {
         // Physical stacking order:
         // - On unpeeled side (right for 'next'): leaf 0 is on top of leaf 1, which is on top of leaf 2.
-        //   -> frontWrapper zIndex = 28 - i * 2.
+        //   -> every waiting leaf remains above the destination under-sheet, even on long mobile riffles.
         // - On peeled reverse side (left for 'next'): leaf 0 lands first, leaf 1 lands on top of leaf 0, leaf 2 lands on top of leaf 1.
-        //   -> flapFilter zIndex = 35 + i * 4.
-        const frontZ = 28 - i * 2
-        const flapZ = 35 + i * 4
+        //   -> later landed leaves cover earlier ones.
+        const frontZ = 30 + leaves.length - i
+        const flapZ = 60 + i * 4
         // Each cascading leaf keeps its own unique torn silhouette (front & back mirror-matched)
         const tornFrontClass = `${tornFrontSide} ${tornVariantClass(getSheetTornVariant(leaf.frontSheet))}`
         const tornBackClass = `${tornBackSide} ${tornVariantClass(getSheetTornVariant(leaf.backSheet))}`
@@ -396,7 +395,6 @@ export default function BookRiffle({
                 zIndex: flapZ,
                 perspective: '2000px',
                 perspectiveOrigin: '50% 50%',
-                willChange: 'filter',
                 opacity: 0,
               }}
             >
@@ -423,7 +421,9 @@ export default function BookRiffle({
                   }}
                 >
                   {leaf.backSheet}
-                  <div className={`pointer-events-none absolute inset-0 overflow-hidden z-30 ${tornBackClass}`} />
+                  <div className={`pointer-events-none absolute inset-0 overflow-hidden z-30 ${tornBackClass}`}>
+                    <div ref={(el) => { getLeafRef(i).rollLight = el }} className="pointer-events-none absolute left-0 top-0" style={{ height: Math.ceil(Math.hypot(pageW, pageH) * 1.6), transformOrigin: '0 50%', opacity: 0, background: PAPER_ROLL_LIGHT }} />
+                  </div>
                 </div>
               </div>
             </div>

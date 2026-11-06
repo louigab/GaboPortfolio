@@ -334,7 +334,7 @@ export function solveBookCurl(params: {
 
   const progress = clamp((W - P.x) / (2 * W), 0, 1)
   const arch = Math.sin(Math.PI * progress)
-  const rollRadius = 22 + 86 * arch
+  const rollRadius = 14 + 54 * arch
 
   const n: Vec = span < 1e-4 ? { x: 1, y: 0 } : { x: vx / span, y: vy / span }
   const M: Vec =
@@ -388,7 +388,7 @@ export function solveBookCurl(params: {
     // under u = W - x, dx_back = -dx_canonical, so outward normal in back coords is (+n.x, -n.y)
     const outwardBackNormal: Vec = { x: n.x, y: -n.y }
     const spineClearance = clamp(foldMidCanonical.x / 28, 0, 1)
-    const bulge = 11 * arch * spineClearance
+    const bulge = 7 * arch * spineClearance
     const backClipPath = buildCurvedBackPath(
       backPoly,
       backE1,
@@ -414,7 +414,8 @@ export function solveBookCurl(params: {
     const ty = Math.round(n.x * 10000) / 10000
     const mx = Math.round(spreadFoldMid.x * 100) / 100
     const my = Math.round(spreadFoldMid.y * 100) / 100
-    const zLift = Math.round(28 * arch * 10) / 10
+    // Rotation may lift the free flap, but its fold line must remain attached.
+    const zLift = 0
     const flapLift3DCss =
       liftDeg > 0.01
         ? `translate3d(${mx}px, ${my}px, ${zLift}px) rotate3d(${tx}, ${ty}, 0, ${liftDeg}deg) translate3d(${-mx}px, ${-my}px, 0px)`
@@ -470,7 +471,7 @@ export function solveBookCurl(params: {
     // Outward from peeled toward unpeeled in canonical is -n
     const outwardBackNormal: Vec = { x: -n.x, y: -n.y }
     const spineClearance = clamp(foldMidCanonical.x / 28, 0, 1)
-    const bulge = 11 * arch * spineClearance
+    const bulge = 7 * arch * spineClearance
     const backClipPath = buildCurvedBackPath(
       backPolyRight,
       backE1,
@@ -498,7 +499,8 @@ export function solveBookCurl(params: {
     const ty = Math.round(nsx * 10000) / 10000
     const mx = Math.round(spreadFoldMid.x * 100) / 100
     const my = Math.round(spreadFoldMid.y * 100) / 100
-    const zLift = Math.round(28 * arch * 10) / 10
+    // Rotation may lift the free flap, but its fold line must remain attached.
+    const zLift = 0
     const flapLift3DCss =
       liftDeg > 0.01
         ? `translate3d(${mx}px, ${my}px, ${zLift}px) rotate3d(${tx}, ${ty}, 0, ${liftDeg}deg) translate3d(${-mx}px, ${-my}px, 0px)`

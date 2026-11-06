@@ -525,3 +525,88 @@ body {
   }
 }
 
+
+.desk-surface {
+  background-color: #9c734d;
+  background-image: linear-gradient(rgba(117,103,85,.46),rgba(69,57,44,.40)), url('/images/materials/school-desk.webp');
+  background-size: cover;
+  background-position: center;
+}
+.arrival-desk-shadow {
+  position: absolute;
+  height: 80%;
+  top: 12%;
+  left: 50%;
+  margin-left: 0;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(35,22,12,.5), transparent 70%);
+  pointer-events: none;
+  opacity: 0;
+}
+[data-ui="diary-book"] .notebook-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 25;
+  background-image: url('/images/materials/paper-fibers.png'), linear-gradient(110deg, rgba(255,253,242,.12), transparent 42%, rgba(86,59,29,.045));
+  background-size: 192px 192px, 100% 100%;
+  box-shadow: inset 0 1px rgba(255,255,255,.5), inset 0 -1px rgba(74,52,28,.13);
+}
+
+
+/* One warm, upper-left light for desk, board edges, and the paper crown. */
+.book-board {
+  background-color: #252321;
+  background-image: linear-gradient(115deg, rgba(255,241,214,.08), rgba(0,0,0,.12)), url('/images/materials/black-bookcloth.webp');
+  background-size: 100% 100%, 360px 360px;
+  box-shadow: inset 0 1px 1px rgba(255,244,221,.28), inset 1px 0 1px rgba(255,244,221,.12), inset 0 -2px 2px rgba(0,0,0,.6), 0 3px 0 #151411, 1px 5px 0 #3b3329, 2px 7px 2px rgba(24,19,13,.6), 8px 18px 23px rgba(28,20,12,.28);
+}
+.book-board-left { border-radius: 10px 2px 2px 10px; }
+.book-board-right { border-radius: 2px 10px 10px 2px; }
+.book-board::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1px solid rgba(227,206,169,.13);
+}
+.cover-artwork {
+  box-shadow: inset 0 1px 2px rgba(255,241,214,.25), inset -2px -3px 5px rgba(0,0,0,.7), 0 2px 0 #332c24, 1px 4px 0 #171512, 3px 8px 10px rgba(26,19,11,.36);
+}
+[data-ui="diary-book"] .notebook-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  pointer-events: none;
+}
+[data-ui="diary-book"] .notebook-left::before {
+  background: linear-gradient(to right, rgba(74,52,28,.07), transparent 3%, transparent 58%, rgba(255,252,232,.17) 84%, rgba(86,64,37,.08) 96%, rgba(49,37,22,.12));
+}
+[data-ui="diary-book"] .notebook-right::before {
+  background: linear-gradient(to right, rgba(49,37,22,.12), rgba(86,64,37,.08) 4%, rgba(255,252,232,.20) 15%, transparent 48%, rgba(74,52,28,.035) 98%, rgba(74,52,28,.10));
+}
+
+/* Buried paper edges are unprinted stock, not duplicates of ruled page faces. */
+.paper-stack-sheet {
+  background-image: url('/images/materials/paper-fibers.png');
+  background-size: 192px 192px;
+  pointer-events: none;
+}
+
+
+.arrival-dust-plane {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.arrival-dust {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(222,204,169,.62), rgba(200,178,140,.28) 35%, transparent 72%);
+}
