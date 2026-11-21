@@ -234,7 +234,7 @@ export function ProjectsPageRight({ onInspectPhoto }: ProjectsPageProps) {
 }
 
 export function ProjectsPageMoreLeft({ onInspectPhoto }: ProjectsPageProps) {
-  const thirdHalf = PROJECTS.slice(6, 8)
+  const thirdHalf = PROJECTS.slice(6, 9)
 
   return (
     <div className="h-full flex flex-col relative pt-0.5 pb-3">
